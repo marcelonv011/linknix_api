@@ -3,19 +3,19 @@ package br.com.linknix.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(
-        name = "modelos_ia",
+        name = "criterios_comparacao",
         uniqueConstraints = {
                 @UniqueConstraint(
-                        name = "uk_modelo_ia_provedor_identificador",
-                        columnNames = {
-                                "provedor_ia_id",
-                                "identificador_modelo"
-                        }
+                        name = "uk_criterio_comparacao_nome",
+                        columnNames = "nome"
+                ),
+                @UniqueConstraint(
+                        name = "uk_criterio_comparacao_codigo",
+                        columnNames = "codigo"
                 )
         }
 )
@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ModeloIA {
+public class CriterioComparacao {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,42 +37,19 @@ public class ModeloIA {
     )
     private String nome;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(
-            name = "provedor_ia_id",
-            nullable = false,
-            foreignKey = @ForeignKey(
-                    name = "fk_modelo_ia_provedor_ia"
-            )
-    )
-    private ProvedorIA provedor;
-
     @Column(
-            name = "identificador_modelo",
+            name = "codigo",
             nullable = false,
-            length = 150
+            length = 100
     )
-    private String identificadorModelo;
+    private String codigo;
 
     @Column(
             name = "descricao",
+            nullable = false,
             length = 500
     )
     private String descricao;
-
-    @Column(
-            name = "custo_entrada_por_mil_tokens",
-            precision = 12,
-            scale = 6
-    )
-    private BigDecimal custoEntradaPorMilTokens;
-
-    @Column(
-            name = "custo_saida_por_mil_tokens",
-            precision = 12,
-            scale = 6
-    )
-    private BigDecimal custoSaidaPorMilTokens;
 
     @Column(
             name = "ativo",
@@ -87,9 +64,7 @@ public class ModeloIA {
     )
     private LocalDateTime criadoEm;
 
-    @Column(
-            name = "atualizado_em"
-    )
+    @Column(name = "atualizado_em")
     private LocalDateTime atualizadoEm;
 
     @PrePersist

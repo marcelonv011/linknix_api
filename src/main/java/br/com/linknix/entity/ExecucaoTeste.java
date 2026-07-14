@@ -1,18 +1,19 @@
 package br.com.linknix.entity;
 
+import br.com.linknix.enums.StatusExecucaoTeste;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "prompts")
+@Table(name = "execucoes_teste")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Prompt {
+public class ExecucaoTeste {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,31 +32,13 @@ public class Prompt {
     )
     private String descricao;
 
+    @Enumerated(EnumType.STRING)
     @Column(
-            name = "conteudo",
+            name = "status",
             nullable = false,
-            columnDefinition = "TEXT"
+            length = 30
     )
-    private String conteudo;
-
-    @Column(
-            name = "versao",
-            nullable = false
-    )
-    private Integer versao;
-
-    @Column(
-            name = "ativo",
-            nullable = false
-    )
-    private Boolean ativo;
-
-    @Column(
-            name = "autor",
-            nullable = false,
-            length = 150
-    )
-    private String autor;
+    private StatusExecucaoTeste status;
 
     @Column(
             name = "criado_em",
@@ -64,19 +47,13 @@ public class Prompt {
     )
     private LocalDateTime criadoEm;
 
-    @Column(
-            name = "atualizado_em"
-    )
+    @Column(name = "atualizado_em")
     private LocalDateTime atualizadoEm;
 
     @PrePersist
     public void prePersist() {
-        if (versao == null) {
-            versao = 1;
-        }
-
-        if (ativo == null) {
-            ativo = false;
+        if (status == null) {
+            status = StatusExecucaoTeste.PENDENTE;
         }
 
         if (criadoEm == null) {

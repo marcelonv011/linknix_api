@@ -47,6 +47,15 @@ public class ClienteHelpDesk {
     )
     private String apiKey;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "criado_por_usuario_id",
+            foreignKey = @ForeignKey(
+                    name = "fk_cliente_helpdesk_criado_por_usuario"
+            )
+    )
+    private Usuario criadoPor;
+
     @Column(
             name = "ativo",
             nullable = false

@@ -44,7 +44,6 @@ public class Chamado {
     )
     private String titulo;
 
-    @Lob
     @Column(
             name = "descricao",
             nullable = false,
@@ -77,15 +76,14 @@ public class Chamado {
     )
     private ClienteHelpDesk clienteHelpDesk;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "prompt_id",
-            nullable = false,
+            name = "categoria_esperada_id",
             foreignKey = @ForeignKey(
-                    name = "fk_chamado_prompt"
+                    name = "fk_chamado_categoria_esperada"
             )
     )
-    private Prompt prompt;
+    private CategoriaClassificacao categoriaEsperada;
 
     @Column(
             name = "criado_em",
