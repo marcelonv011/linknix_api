@@ -12,7 +12,4 @@ public class ChamadoRequestDTO {
     private String titulo;
     @NotBlank
     private String descricao;
-    @NotBlank @Size(max = 150)
-    private String sistemaOrigem;
-    private Long categoriaEsperadaId;
 }
