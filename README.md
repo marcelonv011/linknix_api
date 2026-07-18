@@ -61,7 +61,7 @@ Durante a preparação, podem aparecer senhas diferentes:
 
 1. **Senha do usuário PostgreSQL `postgres`:** definida durante a instalação do PostgreSQL. A aplicação utiliza essa senha para se conectar ao banco de dados.
 2. **Senha mestra do pgAdmin 4:** o pgAdmin pode solicitá-la na primeira abertura. Ela serve apenas para proteger as senhas salvas dentro do pgAdmin.
-3. **API keys dos modelos de IA:** pertencem à OpenAI, Claude ou DeepSeek. Elas ainda não são utilizadas nesta etapa e nunca devem ser escritas diretamente no código.
+3. **API keys dos modelos de IA:** pertencem à OpenAI, Anthropic Claude ou DeepSeek. Elas são necessárias somente no modo real e nunca devem ser escritas diretamente no código ou enviadas ao GitHub.
 
 ## 3. Registrar o PostgreSQL no pgAdmin 4
 
@@ -336,13 +336,14 @@ Não altere uma migração que já tenha sido executada em um banco compartilhad
 
 ## 11. O que a aplicação configura automaticamente
 
-Ao iniciar a aplicação em um banco vazio, o Flyway executa três migrações:
+Ao iniciar a aplicação em um banco vazio, o Flyway executa quatro migrações:
 
 1. `V1__create_initial_schema.sql`: cria as tabelas, relacionamentos, índices e restrições.
 2. `V2__insert_initial_categories.sql`: cadastra as categorias `DEV` e `SUPORTE`.
-3. `V3__insert_initial_ai_configuration.sql`: cadastra o prompt ativo, o critério de maioria, os providers OpenAI, Claude e DeepSeek e um modelo simulado de cada provider.
+3. `V3__insert_initial_ai_configuration.sql`: cadastra o prompt ativo, o critério de maioria, os providers OpenAI, Claude e DeepSeek e a configuração inicial dos modelos.
+4. `V4__configure_real_ai_models.sql`: atualiza os identificadores e custos estimados dos modelos utilizados pelas APIs reais.
 
-Os providers são simulados. Portanto, não é necessário comprar créditos nem cadastrar chaves da OpenAI, Anthropic ou DeepSeek para testar o TCC.
+Por padrão, os providers continuam no modo `simulado`. Assim, é possível testar o fluxo completo sem comprar créditos. O modo `real` é ativado por configuração e exige uma API Key válida de cada provider.
 
 ## 12. Abrir o Swagger
 
@@ -429,7 +430,7 @@ recebe o chamado
 → busca o prompt ativo
 → busca as categorias ativas
 → monta o prompt final
-→ executa OpenAI, Claude e DeepSeek simulados
+→ executa OpenAI, Claude e DeepSeek no modo configurado
 → salva uma ClassificacaoIA por modelo
 → aplica o critério de maioria
 → salva o ResultadoComparativo
@@ -456,9 +457,100 @@ Os endpoints iniciados por `/api/admin` permitem cadastrar e consultar usuários
 - As API Keys de clientes são armazenadas como hash SHA-256.
 - Os endpoints privados utilizam JWT assinado com HS256.
 - O token expira em 120 minutos por padrão.
-- O projeto não contém chaves reais de modelos de IA.
+- O projeto não contém chaves reais de modelos de IA; elas são lidas de variáveis de ambiente.
 - Em produção, defina `DB_PASSWORD` e `JWT_SECRET` como variáveis de ambiente e use uma chave JWT aleatória com pelo menos 32 caracteres.
 
 ## 19. Execução opcional com Docker
 
 O projeto também contém `Dockerfile` e `docker-compose.yml`. O Docker Compose inicia PostgreSQL e LinkNix juntos. Essa forma é opcional; o procedimento com PostgreSQL, pgAdmin e IntelliJ continua funcionando normalmente.
+
+## 20. Utilizar as APIs reais da OpenAI, Claude e DeepSeek
+
+O projeto possui dois modos de execução:
+
+| Modo | O que acontece |
+|---|---|
+| `simulado` | As três respostas são produzidas localmente. Não utiliza internet, API Keys nem créditos. |
+| `real` | Cada chamado é enviado para OpenAI, Anthropic Claude e DeepSeek. Utiliza créditos das três contas. |
+
+O modo padrão é `simulado`, para que a aplicação nunca gere custos acidentalmente.
+
+### 20.1 Criar as três API Keys
+
+Crie uma conta, configure cobrança ou créditos quando o provider exigir e gere uma chave nas páginas oficiais:
+
+- OpenAI: <https://platform.openai.com/api-keys>
+- Anthropic Claude: <https://platform.claude.com/settings/keys>
+- DeepSeek: <https://platform.deepseek.com/api_keys>
+
+Uma assinatura do ChatGPT ou do Claude não significa automaticamente que a conta possui créditos de API. A cobrança das APIs é separada.
+
+Copie cada chave no momento da criação. Não publique as chaves, não as envie ao GitHub e não as coloque no corpo das requisições do Postman.
+
+### 20.2 Configuração existente no application.properties
+
+O arquivo `src/main/resources/application.properties` já possui:
+
+```properties
+linknix.ia.modo=${LLM_MODE:simulado}
+linknix.ia.timeout-segundos=${LLM_TIMEOUT_SECONDS:60}
+linknix.ia.openai.api-key=${OPENAI_API_KEY:}
+linknix.ia.openai.base-url=${OPENAI_BASE_URL:https://api.openai.com/v1}
+linknix.ia.claude.api-key=${ANTHROPIC_API_KEY:}
+linknix.ia.claude.base-url=${ANTHROPIC_BASE_URL:https://api.anthropic.com/v1}
+linknix.ia.deepseek.api-key=${DEEPSEEK_API_KEY:}
+linknix.ia.deepseek.base-url=${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+```
+
+O texto antes dos dois-pontos é o nome da variável de ambiente. O texto depois dos dois-pontos é o valor padrão. Por exemplo, se `LLM_MODE` não existir, a aplicação utiliza `simulado`.
+
+### 20.3 Informar as chaves pelo IntelliJ sem utilizar CMD
+
+1. Abra o projeto no IntelliJ IDEA.
+2. Abra o menu `Run`.
+3. Selecione `Edit Configurations...`.
+4. Selecione a configuração `LinkNixApplication`.
+5. Localize o campo `Environment variables`.
+6. Clique no ícone de edição ao lado do campo.
+7. Adicione estas quatro variáveis, substituindo os exemplos pelas chaves verdadeiras:
+
+| Nome | Valor |
+|---|---|
+| `LLM_MODE` | `real` |
+| `OPENAI_API_KEY` | A chave criada na OpenAI |
+| `ANTHROPIC_API_KEY` | A chave criada na Anthropic |
+| `DEEPSEEK_API_KEY` | A chave criada na DeepSeek |
+
+8. Clique em `OK`.
+9. Clique em `Apply` e depois em `OK`.
+10. Pare a aplicação caso ela esteja aberta.
+11. Execute novamente `LinkNixApplication`.
+
+As variáveis ficam na configuração local do IntelliJ e não são gravadas no repositório Git.
+
+### 20.4 Verificar os modelos pelo pgAdmin 4
+
+Ao reiniciar, o Flyway executa a migração `V4`. No Query Tool do banco `linknix`, execute:
+
+```sql
+SELECT
+    p.codigo AS provedor,
+    m.nome AS modelo,
+    m.identificador_modelo,
+    m.ativo
+FROM modelos_ia m
+JOIN provedores_ia p ON p.id = m.provedor_ia_id
+ORDER BY p.codigo;
+```
+
+Devem aparecer os identificadores `gpt-5-mini`, `claude-haiku-4-5` e `deepseek-v4-flash`, todos ativos.
+
+### 20.5 Fazer o teste real
+
+Utilize o mesmo procedimento das seções 13 a 16: crie o administrador, faça login, cadastre o cliente Help Desk e envie um chamado com `POST /api/chamados`.
+
+Para apenas um chamado, o LinkNix fará três requisições externas: uma para cada provider. A resposta pode demorar mais que no modo simulado. O LinkNix validará se cada IA retornou uma das categorias ativas, salvará os tokens informados pelos providers, calculará o custo estimado e produzirá o resultado por maioria.
+
+Se uma chave estiver ausente, inválida, sem créditos ou sem acesso ao modelo, a API retornará `502 Bad Gateway`, e o chamado ficará com status `ERRO`. Leia o campo `mensagem` da resposta para identificar qual provider falhou.
+
+Para voltar a testar sem custos, altere somente `LLM_MODE` para `simulado` na configuração do IntelliJ e reinicie a aplicação.
