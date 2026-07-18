@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: linknix
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: linknix_local
+    ports:
+      - "5432:5432"
+    volumes:
+      - linknix_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d linknix"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/linknix
+      DB_USERNAME: postgres
+      DB_PASSWORD: linknix_local
+      JWT_SECRET: altere-esta-chave-jwt-local-com-mais-de-32-caracteres
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  linknix_postgres_data:

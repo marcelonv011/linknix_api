@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface ClienteHelpDeskRepository extends JpaRepository<ClienteHelpDesk, Long> {
 
     Optional<ClienteHelpDesk> findByApiKeyAndAtivoTrue(String apiKey);
+
+    boolean existsByApiKey(String apiKey);
 }

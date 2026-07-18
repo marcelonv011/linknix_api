@@ -7,10 +7,13 @@ import br.com.linknix.entity.Chamado;
 import br.com.linknix.entity.ClienteHelpDesk;
 import br.com.linknix.enums.StatusChamado;
 import br.com.linknix.exception.ConflitoException;
+import br.com.linknix.exception.RecursoNaoEncontradoException;
 import br.com.linknix.repository.ChamadoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -24,8 +27,11 @@ public class ChamadoService {
             String apiKey,
             ChamadoRequestDTO chamadoRequest
     ) {
-        ClienteHelpDesk clienteHelpDesk = clienteHelpDeskService
-                .buscarAtivoPorApiKey(apiKey);
+        return converterParaResponse(receberEntidade(apiKey, chamadoRequest));
+    }
+
+    Chamado receberEntidade(String apiKey, ChamadoRequestDTO chamadoRequest) {
+        ClienteHelpDesk clienteHelpDesk = clienteHelpDeskService.buscarAtivoPorApiKey(apiKey);
         String codigoExterno = chamadoRequest.getCodigoExterno().trim();
 
         if (chamadoRepository.existsByClienteHelpDeskIdAndCodigoExterno(
@@ -48,10 +54,34 @@ public class ChamadoService {
                 .clienteHelpDesk(clienteHelpDesk)
                 .build();
 
-        return converterParaResponse(chamadoRepository.save(chamado));
+        return chamadoRepository.save(chamado);
     }
 
-    private ChamadoResponseDTO converterParaResponse(Chamado chamado) {
+    @Transactional(readOnly = true)
+    public ChamadoResponseDTO buscarPorId(Long id) {
+        return converterParaResponse(buscarEntidadePorId(id));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChamadoResponseDTO> listarTodos() {
+        return chamadoRepository.findAll().stream()
+                .map(this::converterParaResponse)
+                .toList();
+    }
+
+    Chamado buscarEntidadePorId(Long id) {
+        return chamadoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Chamado não encontrado com o ID " + id
+                ));
+    }
+
+    Chamado atualizarStatus(Chamado chamado, StatusChamado status) {
+        chamado.setStatus(status);
+        return chamadoRepository.save(chamado);
+    }
+
+    ChamadoResponseDTO converterParaResponse(Chamado chamado) {
         ClienteHelpDesk clienteHelpDesk = chamado.getClienteHelpDesk();
         CategoriaClassificacao categoriaEsperada = chamado.getCategoriaEsperada();
 

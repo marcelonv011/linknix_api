@@ -7,7 +7,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -71,6 +73,35 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 "Requisição inválida",
                 "O corpo da requisição está ausente ou possui formato JSON inválido.",
+                request,
+                Map.of()
+        );
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ErroResponseDTO> tratarCabecalhoAusente(
+            MissingRequestHeaderException exception,
+            HttpServletRequest request
+    ) {
+        return criarResposta(
+                HttpStatus.BAD_REQUEST,
+                "Requisição inválida",
+                "O cabeçalho obrigatório " + exception.getHeaderName()
+                        + " não foi informado.",
+                request,
+                Map.of()
+        );
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErroResponseDTO> tratarAutenticacao(
+            AuthenticationException exception,
+            HttpServletRequest request
+    ) {
+        return criarResposta(
+                HttpStatus.UNAUTHORIZED,
+                "Não autorizado",
+                "Usuário ou senha inválidos.",
                 request,
                 Map.of()
         );

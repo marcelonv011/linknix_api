@@ -21,6 +21,7 @@ import br.com.linknix.repository.PromptRepository;
 import br.com.linknix.repository.ResultadoComparativoRepository;
 import br.com.linknix.repository.UsuarioRepository;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -35,7 +36,10 @@ class ServicosConsultaTest {
     @Test
     void usuarioServiceDeveConverterEntidadeEmDtoSemSenha() {
         UsuarioRepository repository = mock(UsuarioRepository.class);
-        UsuarioService service = new UsuarioService(repository);
+        UsuarioService service = new UsuarioService(
+                repository,
+                mock(PasswordEncoder.class)
+        );
         Usuario usuario = Usuario.builder()
                 .id(1L)
                 .nome("Ana")
@@ -132,7 +136,10 @@ class ServicosConsultaTest {
         ResultadoComparativoRepository repository =
                 mock(ResultadoComparativoRepository.class);
         ResultadoComparativoService service =
-                new ResultadoComparativoService(repository);
+                new ResultadoComparativoService(
+                        repository,
+                        mock(CriterioComparacaoService.class)
+                );
         ResultadoComparativo resultado = ResultadoComparativo.builder()
                 .id(9L)
                 .chamado(Chamado.builder().id(10L).build())

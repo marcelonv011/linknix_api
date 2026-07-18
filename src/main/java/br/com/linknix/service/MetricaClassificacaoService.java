@@ -2,6 +2,7 @@ package br.com.linknix.service;
 
 import br.com.linknix.dto.MetricaClassificacaoResponseDTO;
 import br.com.linknix.entity.MetricaClassificacao;
+import br.com.linknix.entity.ClassificacaoIA;
 import br.com.linknix.exception.RecursoNaoEncontradoException;
 import br.com.linknix.repository.MetricaClassificacaoRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,20 @@ import org.springframework.transaction.annotation.Transactional;
 public class MetricaClassificacaoService {
 
     private final MetricaClassificacaoRepository metricaClassificacaoRepository;
+
+    void registrarSeAplicavel(ClassificacaoIA classificacao) {
+        if (classificacao.getChamado().getCategoriaEsperada() == null
+                || classificacao.getCategoriaAtribuida() == null) {
+            return;
+        }
+        boolean acertou = classificacao.getChamado()
+                .getCategoriaEsperada().getId()
+                .equals(classificacao.getCategoriaAtribuida().getId());
+        metricaClassificacaoRepository.save(MetricaClassificacao.builder()
+                .classificacaoIA(classificacao)
+                .acertou(acertou)
+                .build());
+    }
 
     @Transactional(readOnly = true)
     public MetricaClassificacaoResponseDTO buscarPorId(Long id) {

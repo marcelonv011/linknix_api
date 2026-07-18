@@ -164,9 +164,9 @@ A configuração é:
 ```properties
 spring.application.name=linknix
 
-spring.datasource.url=jdbc:postgresql://localhost:5432/linknix
-spring.datasource.username=postgres
-spring.datasource.password=ALTERE_AQUI_SUA_SENHA
+spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/linknix}
+spring.datasource.username=${DB_USERNAME:postgres}
+spring.datasource.password=${DB_PASSWORD:ALTERE_AQUI_SUA_SENHA}
 spring.datasource.driver-class-name=org.postgresql.Driver
 
 spring.jpa.hibernate.ddl-auto=validate
@@ -175,18 +175,21 @@ spring.jpa.properties.hibernate.format_sql=true
 
 spring.flyway.enabled=true
 spring.flyway.locations=classpath:db/migration
+
+linknix.jwt.secret=${JWT_SECRET:linknix-chave-local-segura-com-32-caracteres}
+linknix.jwt.expiracao-minutos=${JWT_EXPIRATION_MINUTES:120}
 ```
 
 Altere somente esta linha:
 
 ```properties
-spring.datasource.password=ALTERE_AQUI_SUA_SENHA
+spring.datasource.password=${DB_PASSWORD:ALTERE_AQUI_SUA_SENHA}
 ```
 
 Substitua o texto pela senha real do usuário PostgreSQL `postgres`. Por exemplo, se durante a instalação você escolheu `MinhaSenhaLocal123`, a linha local ficará assim:
 
 ```properties
-spring.datasource.password=MinhaSenhaLocal123
+spring.datasource.password=${DB_PASSWORD:MinhaSenhaLocal123}
 ```
 
 Não adicione aspas e não deixe espaços antes ou depois da senha.
@@ -330,3 +333,132 @@ V3__outra_modificacao.sql
 ```
 
 Não altere uma migração que já tenha sido executada em um banco compartilhado. O Flyway controla a integridade de cada arquivo por meio de checksum.
+
+## 11. O que a aplicação configura automaticamente
+
+Ao iniciar a aplicação em um banco vazio, o Flyway executa três migrações:
+
+1. `V1__create_initial_schema.sql`: cria as tabelas, relacionamentos, índices e restrições.
+2. `V2__insert_initial_categories.sql`: cadastra as categorias `DEV` e `SUPORTE`.
+3. `V3__insert_initial_ai_configuration.sql`: cadastra o prompt ativo, o critério de maioria, os providers OpenAI, Claude e DeepSeek e um modelo simulado de cada provider.
+
+Os providers são simulados. Portanto, não é necessário comprar créditos nem cadastrar chaves da OpenAI, Anthropic ou DeepSeek para testar o TCC.
+
+## 12. Abrir o Swagger
+
+Com a aplicação em execução, abra o navegador em:
+
+```text
+http://localhost:8080/swagger-ui.html
+```
+
+O Swagger apresenta todos os endpoints e permite executar as requisições sem instalar o Postman.
+
+## 13. Criar o primeiro administrador
+
+O banco começa sem usuários e não possui uma senha padrão insegura. O primeiro administrador é criado uma única vez.
+
+No Swagger:
+
+1. Abra `Auth Controller`.
+2. Abra `POST /api/auth/bootstrap`.
+3. Clique em `Try it out`.
+4. Informe, por exemplo:
+
+```json
+{
+  "nome": "Administrador",
+  "email": "admin@linknix.com",
+  "senha": "SenhaSegura123"
+}
+```
+
+5. Clique em `Execute`.
+
+A resposta deve possuir status `201 Created`. Depois que o primeiro usuário existir, esse endpoint retorna conflito e não permite criar outro administrador sem autenticação.
+
+## 14. Fazer login e autorizar o Swagger
+
+1. Abra `POST /api/auth/login`.
+2. Informe o e-mail e a senha cadastrados.
+3. Copie somente o valor do campo `token` da resposta.
+4. Clique no botão `Authorize`, localizado na parte superior do Swagger.
+5. Cole o token no campo apresentado.
+6. Clique em `Authorize` e depois em `Close`.
+
+O Swagger enviará automaticamente o cabeçalho `Authorization: Bearer <token>` nos endpoints protegidos.
+
+## 15. Cadastrar um cliente Help Desk
+
+Antes de enviar chamados, cadastre o sistema externo que realizará a integração. Abra `POST /api/admin/clientes-helpdesk` e informe:
+
+```json
+{
+  "nome": "JEDi",
+  "sistemaOrigem": "JEDi Educa",
+  "apiKey": "jedi-chave-local-segura-1234567890",
+  "ativo": true
+}
+```
+
+A API Key deve possuir pelo menos 32 caracteres. Guarde o valor informado, pois ele será utilizado pelo Help Desk para enviar chamados.
+
+Por segurança, o LinkNix armazena somente o hash SHA-256 da API Key. A resposta mostra `********` e não permite recuperar a chave original.
+
+## 16. Enviar e classificar um chamado
+
+Abra `POST /api/chamados`. No campo `X-API-Key`, informe a mesma chave usada no cadastro do cliente.
+
+No corpo da requisição, informe somente os dados pertencentes ao ticket:
+
+```json
+{
+  "codigoExterno": "TICKET-100",
+  "titulo": "Usuário não consegue acessar o sistema",
+  "descricao": "Ao informar a senha, o sistema apresenta uma mensagem de erro."
+}
+```
+
+O usuário não informa o sistema de origem nem a categoria. O LinkNix identifica o cliente pela API Key, obtém `JEDi Educa` automaticamente e carrega `DEV` e `SUPORTE` do PostgreSQL.
+
+A aplicação executa o seguinte fluxo:
+
+```text
+recebe o chamado
+→ identifica o Help Desk
+→ busca o prompt ativo
+→ busca as categorias ativas
+→ monta o prompt final
+→ executa OpenAI, Claude e DeepSeek simulados
+→ salva uma ClassificacaoIA por modelo
+→ aplica o critério de maioria
+→ salva o ResultadoComparativo
+→ marca o chamado como CLASSIFICADO
+```
+
+A resposta contém o chamado, as três classificações e o resultado final.
+
+## 17. Consultar os resultados
+
+| Endpoint | Finalidade |
+|---|---|
+| `GET /api/chamados` | Lista os chamados recebidos |
+| `GET /api/chamados/{id}` | Consulta um chamado |
+| `GET /api/classificacoes/chamado/{chamadoId}` | Lista as respostas dos modelos |
+| `GET /api/resultados/chamado/{chamadoId}` | Consulta a classificação final |
+| `GET /api/metricas/{id}` | Consulta uma métrica de acerto |
+
+Os endpoints iniciados por `/api/admin` permitem cadastrar e consultar usuários, clientes Help Desk, categorias, prompts, providers, modelos, critérios e execuções de teste. Apenas usuários com perfil `ADMINISTRADOR` podem acessá-los.
+
+## 18. Configuração de segurança
+
+- As senhas dos usuários são armazenadas com BCrypt.
+- As API Keys de clientes são armazenadas como hash SHA-256.
+- Os endpoints privados utilizam JWT assinado com HS256.
+- O token expira em 120 minutos por padrão.
+- O projeto não contém chaves reais de modelos de IA.
+- Em produção, defina `DB_PASSWORD` e `JWT_SECRET` como variáveis de ambiente e use uma chave JWT aleatória com pelo menos 32 caracteres.
+
+## 19. Execução opcional com Docker
+
+O projeto também contém `Dockerfile` e `docker-compose.yml`. O Docker Compose inicia PostgreSQL e LinkNix juntos. Essa forma é opcional; o procedimento com PostgreSQL, pgAdmin e IntelliJ continua funcionando normalmente.

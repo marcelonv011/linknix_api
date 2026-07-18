@@ -3,6 +3,7 @@ package br.com.linknix.service;
 import br.com.linknix.entity.ClienteHelpDesk;
 import br.com.linknix.exception.RecursoNaoEncontradoException;
 import br.com.linknix.repository.ClienteHelpDeskRepository;
+import br.com.linknix.security.ApiKeyService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -21,6 +22,12 @@ class ClienteHelpDeskServiceTest {
     @Mock
     private ClienteHelpDeskRepository clienteHelpDeskRepository;
 
+    @Mock
+    private UsuarioService usuarioService;
+
+    @Mock
+    private ApiKeyService apiKeyService;
+
     @InjectMocks
     private ClienteHelpDeskService clienteHelpDeskService;
 
@@ -31,7 +38,9 @@ class ClienteHelpDeskServiceTest {
                 .nome("JEDi Educação")
                 .ativo(true)
                 .build();
-        when(clienteHelpDeskRepository.findByApiKeyAndAtivoTrue("chave-valida"))
+        when(apiKeyService.gerarHash(" chave-valida "))
+                .thenReturn("hash-chave-valida");
+        when(clienteHelpDeskRepository.findByApiKeyAndAtivoTrue("hash-chave-valida"))
                 .thenReturn(Optional.of(cliente));
 
         ClienteHelpDesk encontrado = clienteHelpDeskService
@@ -42,7 +51,9 @@ class ClienteHelpDeskServiceTest {
 
     @Test
     void deveRejeitarApiKeyInvalidaOuDeClienteInativo() {
-        when(clienteHelpDeskRepository.findByApiKeyAndAtivoTrue("chave-invalida"))
+        when(apiKeyService.gerarHash("chave-invalida"))
+                .thenReturn("hash-chave-invalida");
+        when(clienteHelpDeskRepository.findByApiKeyAndAtivoTrue("hash-chave-invalida"))
                 .thenReturn(Optional.empty());
 
         assertThrows(
