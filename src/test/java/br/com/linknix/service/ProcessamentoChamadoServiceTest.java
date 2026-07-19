@@ -108,6 +108,21 @@ class ProcessamentoChamadoServiceTest {
         assertEquals(3, resposta.getClassificacoes().size());
         assertEquals(3, resposta.getResultado().getTotalModelos());
         assertNotNull(resposta.getResultado().getCategoriaFinalNome());
+
+        ProcessamentoChamadoResponseDTO respostaSomenteOpenAI = processamentoService
+                .receberEClassificar(apiKey, ChamadoRequestDTO.builder()
+                        .codigoExterno("TICKET-101")
+                        .titulo("Erro ao salvar cadastro")
+                        .descricao("A aplicacao retorna erro ao salvar")
+                        .provedoresIA(List.of("openai"))
+                        .build());
+
+        assertEquals(1, respostaSomenteOpenAI.getClassificacoes().size());
+        assertEquals(
+                "OPENAI",
+                respostaSomenteOpenAI.getClassificacoes().getFirst().getProvedorCodigo()
+        );
+        assertEquals(1, respostaSomenteOpenAI.getResultado().getTotalModelos());
     }
 
     private void criarModelo(

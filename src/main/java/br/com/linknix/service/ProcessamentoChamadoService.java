@@ -46,25 +46,29 @@ public class ProcessamentoChamadoService {
             String apiKey,
             ChamadoRequestDTO request
     ) {
+        List<ModeloIA> modelos = modeloIAService
+                .listarEntidadesAtivasSelecionadas(request.getProvedoresIA());
         Chamado chamado = chamadoService.receberEntidade(apiKey, request);
         chamadoService.atualizarStatus(chamado, StatusChamado.EM_PROCESSAMENTO);
 
         try {
-            return classificar(chamado);
+            return classificar(chamado, modelos);
         } catch (IntegracaoException | RegraNegocioException exception) {
             chamadoService.atualizarStatus(chamado, StatusChamado.ERRO);
             throw exception;
         }
     }
 
-    private ProcessamentoChamadoResponseDTO classificar(Chamado chamado) {
+    private ProcessamentoChamadoResponseDTO classificar(
+            Chamado chamado,
+            List<ModeloIA> modelos
+    ) {
         Prompt prompt = promptService.buscarEntidadeAtiva();
         List<CategoriaClassificacao> categorias = categoriaService
                 .listarEntidadesAtivas();
         List<String> nomesCategorias = categorias.stream()
                 .map(CategoriaClassificacao::getNome)
                 .toList();
-        List<ModeloIA> modelos = modeloIAService.listarEntidadesAtivas();
         String promptFinal = promptEngine.montar(
                 prompt.getConteudo(),
                 ContextoPrompt.builder()

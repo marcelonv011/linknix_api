@@ -2,6 +2,7 @@ package br.com.linknix.controller;
 
 import br.com.linknix.dto.ModeloIARequestDTO;
 import br.com.linknix.dto.ModeloIAResponseDTO;
+import br.com.linknix.dto.ModeloIAStatusRequestDTO;
 import br.com.linknix.service.ModeloIAService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,5 +31,13 @@ public class ModeloIAController {
     @GetMapping("/{id}")
     public ResponseEntity<ModeloIAResponseDTO> buscar(@PathVariable Long id) {
         return ResponseEntity.ok(service.buscarPorId(id));
+    }
+
+    @PatchMapping("/{id}/ativo")
+    public ResponseEntity<ModeloIAResponseDTO> atualizarAtivo(
+            @PathVariable Long id,
+            @Valid @RequestBody ModeloIAStatusRequestDTO request
+    ) {
+        return ResponseEntity.ok(service.atualizarAtivo(id, request.getAtivo()));
     }
 }

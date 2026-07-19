@@ -416,9 +416,30 @@ No corpo da requisição, informe somente os dados pertencentes ao ticket:
 {
   "codigoExterno": "TICKET-100",
   "titulo": "Usuário não consegue acessar o sistema",
-  "descricao": "Ao informar a senha, o sistema apresenta uma mensagem de erro."
+  "descricao": "Ao informar a senha, o sistema apresenta uma mensagem de erro.",
+  "provedoresIA": ["OPENAI", "CLAUDE", "DEEPSEEK"]
 }
 ```
+
+O campo opcional `provedoresIA` permite escolher quais providers serão executados. Os valores vêm dos códigos cadastrados em PostgreSQL, e não de um enum Java. Exemplos:
+
+```json
+"provedoresIA": ["OPENAI"]
+```
+
+```json
+"provedoresIA": ["CLAUDE"]
+```
+
+```json
+"provedoresIA": ["DEEPSEEK"]
+```
+
+```json
+"provedoresIA": ["OPENAI", "CLAUDE", "DEEPSEEK"]
+```
+
+Se `provedoresIA` não for enviado, o LinkNix executará todos os modelos ativos. Se um provider solicitado não possuir modelo ativo, a API retornará uma violação de regra de negócio.
 
 O usuário não informa o sistema de origem nem a categoria. O LinkNix identifica o cliente pela API Key, obtém `JEDi Educa` automaticamente e carrega `DEV` e `SUPORTE` do PostgreSQL.
 
@@ -437,7 +458,7 @@ recebe o chamado
 → marca o chamado como CLASSIFICADO
 ```
 
-A resposta contém o chamado, as três classificações e o resultado final.
+A resposta contém o chamado, uma classificação para cada modelo selecionado e o resultado final.
 
 ## 17. Consultar os resultados
 
@@ -509,10 +530,13 @@ O texto antes dos dois-pontos é o nome da variável de ambiente. O texto depois
 1. Abra o projeto no IntelliJ IDEA.
 2. Abra o menu `Run`.
 3. Selecione `Edit Configurations...`.
-4. Selecione a configuração `LinkNixApplication`.
-5. Localize o campo `Environment variables`.
-6. Clique no ícone de edição ao lado do campo.
-7. Adicione estas quatro variáveis, substituindo os exemplos pelas chaves verdadeiras:
+4. Na coluna esquerda, abra `Application`, se necessário.
+5. Selecione a configuração `LinkNixApplication`.
+6. Caso o campo `Environment variables` não esteja visível, clique em `Modify options`.
+7. Dentro de `Modify options`, selecione `Environment variables`.
+8. Localize o novo campo `Environment variables` na configuração.
+9. Clique no pequeno ícone de edição localizado ao lado direito do campo.
+10. Adicione estas quatro variáveis, substituindo os exemplos pelas chaves verdadeiras:
 
 | Nome | Valor |
 |---|---|
@@ -521,14 +545,118 @@ O texto antes dos dois-pontos é o nome da variável de ambiente. O texto depois
 | `ANTHROPIC_API_KEY` | A chave criada na Anthropic |
 | `DEEPSEEK_API_KEY` | A chave criada na DeepSeek |
 
-8. Clique em `OK`.
-9. Clique em `Apply` e depois em `OK`.
-10. Pare a aplicação caso ela esteja aberta.
-11. Execute novamente `LinkNixApplication`.
+11. Não utilize aspas e não deixe espaços antes ou depois dos valores.
+12. Clique em `OK` na janela das variáveis.
+13. Clique em `Apply` e depois em `OK`.
+14. Pare completamente a aplicação caso ela esteja aberta.
+15. Execute novamente `LinkNixApplication`.
 
 As variáveis ficam na configuração local do IntelliJ e não são gravadas no repositório Git.
 
-### 20.4 Verificar os modelos pelo pgAdmin 4
+Se `LinkNixApplication` não aparecer em `Edit Configurations`, abra a classe `src/main/java/br/com/linknix/LinkNixApplication.java`, execute uma vez o método `main` pelo triângulo verde e depois volte para `Run > Edit Configurations...`.
+
+> Nunca envie uma captura de tela com as API Keys visíveis. Nunca coloque as chaves da OpenAI, Anthropic ou DeepSeek no Postman.
+
+### 20.4 Testar somente OpenAI e Claude
+
+O LinkNix tenta executar todos os modelos ativos no PostgreSQL. Se `LLM_MODE=real`, o modelo DeepSeek estiver ativo e `DEEPSEEK_API_KEY` não estiver configurada, a classificação terminará com `502 Bad Gateway`.
+
+É possível desativar a DeepSeek pelo Postman, sem alterar diretamente o PostgreSQL.
+
+Primeiro, faça login como administrador e copie o JWT. Depois consulte os modelos:
+
+```http
+GET http://localhost:8080/api/admin/modelos
+Authorization: Bearer JWT_ADMIN
+```
+
+Localize o objeto com `provedorCodigo` igual a `DEEPSEEK` e anote seu `id`. Supondo que o ID seja `3`, envie:
+
+```http
+PATCH http://localhost:8080/api/admin/modelos/3/ativo
+Authorization: Bearer JWT_ADMIN
+Content-Type: application/json
+```
+
+```json
+{
+  "ativo": false
+}
+```
+
+A resposta mostrará `"ativo": false`. Não é necessário reiniciar a aplicação.
+
+Para reativar o mesmo modelo:
+
+```http
+PATCH http://localhost:8080/api/admin/modelos/3/ativo
+Authorization: Bearer JWT_ADMIN
+Content-Type: application/json
+```
+
+```json
+{
+  "ativo": true
+}
+```
+
+O ID `3` é apenas um exemplo. Sempre confirme o ID real usando `GET /api/admin/modelos`.
+
+Como alternativa administrativa, ainda é possível desativar pelo Query Tool do pgAdmin 4:
+
+```sql
+UPDATE modelos_ia m
+SET ativo = FALSE,
+    atualizado_em = CURRENT_TIMESTAMP
+FROM provedores_ia p
+WHERE m.provedor_ia_id = p.id
+  AND p.codigo = 'DEEPSEEK';
+```
+
+Depois, confirme os modelos ativos:
+
+```sql
+SELECT
+    p.codigo AS provedor,
+    m.identificador_modelo,
+    m.ativo
+FROM modelos_ia m
+JOIN provedores_ia p ON p.id = m.provedor_ia_id
+ORDER BY p.codigo;
+```
+
+Para esse teste, o resultado esperado é:
+
+```text
+OPENAI    gpt-5-mini          true
+CLAUDE    claude-haiku-4-5    true
+DEEPSEEK  deepseek-v4-flash   false
+```
+
+No IntelliJ, configure somente:
+
+```text
+LLM_MODE=real
+OPENAI_API_KEY=sua-chave-da-openai
+ANTHROPIC_API_KEY=sua-chave-da-anthropic
+```
+
+Os valores reais devem existir somente na configuração local do IntelliJ. Os créditos da OpenAI e da Anthropic são separados: possuir saldo na OpenAI não adiciona saldo à conta da Anthropic.
+
+Para reativar a DeepSeek pelo pgAdmin posteriormente:
+
+```sql
+UPDATE modelos_ia m
+SET ativo = TRUE,
+    atualizado_em = CURRENT_TIMESTAMP
+FROM provedores_ia p
+WHERE m.provedor_ia_id = p.id
+  AND p.codigo = 'DEEPSEEK';
+```
+
+Antes de reativá-la no modo real, configure também `DEEPSEEK_API_KEY`.
+
+### 20.5 Verificar os modelos pelo pgAdmin 4
 
 Ao reiniciar, o Flyway executa a migração `V4`. No Query Tool do banco `linknix`, execute:
 
@@ -545,12 +673,140 @@ ORDER BY p.codigo;
 
 Devem aparecer os identificadores `gpt-5-mini`, `claude-haiku-4-5` e `deepseek-v4-flash`, todos ativos.
 
-### 20.5 Fazer o teste real
+### 20.6 Fazer o teste real
 
 Utilize o mesmo procedimento das seções 13 a 16: crie o administrador, faça login, cadastre o cliente Help Desk e envie um chamado com `POST /api/chamados`.
 
-Para apenas um chamado, o LinkNix fará três requisições externas: uma para cada provider. A resposta pode demorar mais que no modo simulado. O LinkNix validará se cada IA retornou uma das categorias ativas, salvará os tokens informados pelos providers, calculará o custo estimado e produzirá o resultado por maioria.
+No Postman, a requisição de chamado utiliza a API Key do `ClienteHelpDesk` no cabeçalho `X-API-Key`. Nunca utilize uma chave da OpenAI, Anthropic ou DeepSeek nesse cabeçalho.
+
+Exemplo:
+
+```http
+POST http://localhost:8080/api/chamados
+Content-Type: application/json
+X-API-Key: chave-privada-do-cliente-helpdesk
+```
+
+```json
+{
+  "codigoExterno": "TICKET-REAL-001",
+  "titulo": "Sistema de login apresenta erro 500",
+  "descricao": "Ao informar usuário e senha, a aplicação retorna erro interno 500.",
+  "provedoresIA": ["OPENAI", "CLAUDE"]
+}
+```
+
+Utilize um `codigoExterno` diferente em cada teste, por exemplo `TICKET-REAL-002` e `TICKET-REAL-003`. O LinkNix impede o processamento duplicado do mesmo código para o mesmo cliente Help Desk.
+
+O LinkNix fará uma requisição externa para cada modelo ativo. A resposta pode demorar mais que no modo simulado. O LinkNix validará se cada IA retornou uma das categorias ativas, salvará a justificativa produzida pela IA, os tokens informados pelos providers, o tempo de resposta e o custo estimado, e então produzirá o resultado comparativo.
+
+Uma resposta real pode ser reconhecida pelos seguintes sinais:
+
+- A justificativa não contém `Resposta simulada`.
+- `provedorCodigo` mostra os providers ativos, por exemplo `OPENAI` e `CLAUDE`.
+- `tokensEntrada` e `tokensSaida` contêm o consumo informado por cada API.
+- `tempoRespostaMs` corresponde ao tempo real da chamada externa.
+- O painel de cobrança do provider registra um pequeno consumo.
 
 Se uma chave estiver ausente, inválida, sem créditos ou sem acesso ao modelo, a API retornará `502 Bad Gateway`, e o chamado ficará com status `ERRO`. Leia o campo `mensagem` da resposta para identificar qual provider falhou.
 
 Para voltar a testar sem custos, altere somente `LLM_MODE` para `simulado` na configuração do IntelliJ e reinicie a aplicação.
+
+### 20.7 Configurar as chaves ao publicar a API
+
+As variáveis cadastradas em `Run > Edit Configurations...` pertencem somente ao IntelliJ daquele computador. Elas não são enviadas ao GitHub e não acompanham o arquivo JAR quando a API é publicada.
+
+Ao publicar LinkNix em Render, Railway, AWS, Azure ou outro servidor, cadastre as variáveis na área chamada `Environment Variables`, `Secrets` ou `Configuration` da própria plataforma:
+
+```text
+LLM_MODE=real
+OPENAI_API_KEY=sua-chave-da-openai
+ANTHROPIC_API_KEY=sua-chave-da-anthropic
+DEEPSEEK_API_KEY=sua-chave-da-deepseek
+DB_PASSWORD=sua-senha-do-postgresql
+JWT_SECRET=uma-chave-jwt-aleatoria-e-segura
+```
+
+Cadastre somente as chaves correspondentes aos modelos ativos. Se a DeepSeek estiver desativada, `DEEPSEEK_API_KEY` não será necessária.
+
+O GitHub deve continuar recebendo apenas referências às variáveis:
+
+```properties
+linknix.ia.modo=${LLM_MODE:simulado}
+linknix.ia.openai.api-key=${OPENAI_API_KEY:}
+linknix.ia.claude.api-key=${ANTHROPIC_API_KEY:}
+linknix.ia.deepseek.api-key=${DEEPSEEK_API_KEY:}
+```
+
+Nunca envie para o GitHub uma configuração como:
+
+```properties
+linknix.ia.openai.api-key=sk-chave-real
+```
+
+O funcionamento é:
+
+```text
+GitHub     -> guarda somente os nomes das variáveis
+IntelliJ   -> guarda as chaves utilizadas nos testes locais
+Servidor   -> guarda as chaves utilizadas pela API publicada
+```
+
+Se `LLM_MODE` não estiver configurada, o valor padrão será `simulado`. Se `LLM_MODE=real` e faltar a chave de algum modelo ativo, a classificação retornará erro de integração.
+
+## 21. Entender os campos técnicos da classificação
+
+### 21.1 nivelConfianca
+
+No modo real, `nivelConfianca` é uma autoavaliação produzida pela própria IA, entre `0` e `1`. Por exemplo, `0.85` significa que o modelo declarou aproximadamente 85% de confiança na própria resposta.
+
+Esse valor não é uma probabilidade cientificamente calibrada e não garante que a categoria esteja correta. Modelos diferentes podem repetir valores como `0.85`. A precisão real deve ser medida utilizando chamados com categoria esperada conhecida e comparando a resposta atribuída com essa categoria.
+
+No modo simulado, a confiança é um valor fixo usado somente para testar o fluxo. Portanto, não representa qualidade real.
+
+`percentualConcordancia` possui outro significado: ele é calculado pelo LinkNix e informa quantos modelos escolheram a mesma categoria. Por exemplo, dois votos iguais entre três modelos produzem `66.67%` de concordância.
+
+### 21.2 tempoRespostaMs
+
+No modo real, `tempoRespostaMs` mede o tempo transcorrido entre o envio da requisição HTTP ao provider e o recebimento da resposta. O valor é real para aquela chamada, mas pode variar conforme internet, disponibilidade do provider e carga do serviço.
+
+No modo simulado, o tempo é fixo e existe somente para representar o formato da resposta.
+
+### 21.3 tokensEntrada e tokensSaida
+
+No modo real, os valores são lidos do campo de uso retornado por OpenAI, Anthropic ou DeepSeek:
+
+- `tokensEntrada`: tokens utilizados para enviar o prompt.
+- `tokensSaida`: tokens utilizados para gerar a classificação e a justificativa.
+
+No modo simulado, os tokens são apenas uma aproximação baseada na quantidade de caracteres.
+
+### 21.4 custoEstimado
+
+O LinkNix calcula o custo estimado usando os tokens retornados e os preços cadastrados em `modelos_ia`:
+
+```text
+custo estimado =
+    (tokens de entrada × custo de entrada por mil / 1000)
+  + (tokens de saída × custo de saída por mil / 1000)
+```
+
+Esse valor é uma estimativa, não substitui a fatura oficial do provider. Alterações de preço, tokens em cache, promoções ou regras específicas do provider podem causar diferença entre o valor armazenado e o valor cobrado.
+
+### 21.5 metricaClassificacaoId
+
+`metricaClassificacaoId` pertence à avaliação acadêmica do classificador. Ele é preenchido quando existe uma categoria esperada conhecida e o LinkNix consegue comparar:
+
+```text
+categoria esperada: DEV
+categoria atribuída pela IA: DEV
+resultado da métrica: acertou = true
+```
+
+Em chamados normais, a categoria esperada não é informada; por isso `metricaClassificacaoId` e `acertou` normalmente aparecem como `null`.
+
+### 21.6 execucaoTesteId
+
+`execucaoTesteId` serve para agrupar classificações pertencentes a uma execução experimental, por exemplo um teste com cem chamados conhecidos para comparar os modelos.
+
+Um chamado comum recebido de um Help Desk não pertence a uma execução de teste. Por isso `execucaoTesteId` normalmente aparece como `null`.
