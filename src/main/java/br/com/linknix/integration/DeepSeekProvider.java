@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
 import java.util.Map;
 
 @Component
@@ -17,12 +16,11 @@ public class DeepSeekProvider extends AbstractLLMProvider {
     private static final String INSTRUCAO_FORMATO = """
 
             Responda somente como objeto JSON com os campos:
-            categoria, nivelConfianca e justificativa.
-            nivelConfianca deve ser um numero entre 0 e 1.
+            categoria e justificativa.
             """;
 
     public DeepSeekProvider() {
-        super("DEEPSEEK", new BigDecimal("0.89"), 100L);
+        super("DEEPSEEK", 100L);
     }
 
     @Autowired
@@ -35,7 +33,6 @@ public class DeepSeekProvider extends AbstractLLMProvider {
     ) {
         super(
                 "DEEPSEEK",
-                new BigDecimal("0.89"),
                 100L,
                 objectMapper,
                 modo,

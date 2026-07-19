@@ -68,13 +68,6 @@ public class ClassificacaoIA {
     private ExecucaoTeste execucaoTeste;
 
     @Column(
-            name = "nivel_confianca",
-            precision = 5,
-            scale = 4
-    )
-    private BigDecimal nivelConfianca;
-
-    @Column(
             name = "justificativa",
             columnDefinition = "TEXT"
     )

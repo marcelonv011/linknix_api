@@ -8,14 +8,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
 import java.util.Map;
 
 @Component
 public class ClaudeProvider extends AbstractLLMProvider {
 
     public ClaudeProvider() {
-        super("CLAUDE", new BigDecimal("0.92"), 140L);
+        super("CLAUDE", 140L);
     }
 
     @Autowired
@@ -28,7 +27,6 @@ public class ClaudeProvider extends AbstractLLMProvider {
     ) {
         super(
                 "CLAUDE",
-                new BigDecimal("0.92"),
                 140L,
                 objectMapper,
                 modo,

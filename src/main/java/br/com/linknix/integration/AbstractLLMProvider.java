@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -23,7 +22,6 @@ public abstract class AbstractLLMProvider implements LLMProvider {
     private static final int CARACTERES_POR_TOKEN_SIMULADO = 4;
 
     private final String codigo;
-    private final BigDecimal nivelConfiancaSimulado;
     private final long tempoRespostaMsSimulado;
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
@@ -34,12 +32,10 @@ public abstract class AbstractLLMProvider implements LLMProvider {
 
     protected AbstractLLMProvider(
             String codigo,
-            BigDecimal nivelConfianca,
             long tempoRespostaMs
     ) {
         this(
                 codigo,
-                nivelConfianca,
                 tempoRespostaMs,
                 new ObjectMapper(),
                 "simulado",
@@ -51,7 +47,6 @@ public abstract class AbstractLLMProvider implements LLMProvider {
 
     protected AbstractLLMProvider(
             String codigo,
-            BigDecimal nivelConfianca,
             long tempoRespostaMs,
             ObjectMapper objectMapper,
             String modo,
@@ -60,7 +55,6 @@ public abstract class AbstractLLMProvider implements LLMProvider {
             long timeoutSegundos
     ) {
         this.codigo = codigo;
-        this.nivelConfiancaSimulado = nivelConfianca;
         this.tempoRespostaMsSimulado = tempoRespostaMs;
         this.objectMapper = objectMapper;
         this.httpClient = HttpClient.newBuilder()
@@ -118,18 +112,11 @@ public abstract class AbstractLLMProvider implements LLMProvider {
         ArrayNode valoresPermitidos = categoria.putArray("enum");
         normalizarCategorias(categorias).forEach(valoresPermitidos::add);
 
-        propriedades.putObject("nivelConfianca")
-                .put("type", "number")
-                .put(
-                        "description",
-                        "Numero entre 0 e 1 que representa a confianca da classificacao"
-                );
         propriedades.putObject("justificativa")
                 .put("type", "string");
 
         schema.putArray("required")
                 .add("categoria")
-                .add("nivelConfianca")
                 .add("justificativa");
         schema.put("additionalProperties", false);
         return schema;
@@ -200,23 +187,10 @@ public abstract class AbstractLLMProvider implements LLMProvider {
                 categoriaRecebida,
                 solicitacao.getCategoriasDisponiveis()
         );
-        BigDecimal nivelConfianca = decimalObrigatorio(
-                classificacao,
-                "nivelConfianca"
-        );
-        if (nivelConfianca.compareTo(BigDecimal.ZERO) < 0
-                || nivelConfianca.compareTo(BigDecimal.ONE) > 0) {
-            throw new IntegracaoException(
-                    "O provedor " + codigo
-                            + " retornou nivelConfianca fora do intervalo de 0 a 1"
-            );
-        }
-
         return RespostaLLM.builder()
                 .codigoProvedor(codigo)
                 .identificadorModelo(solicitacao.getIdentificadorModelo().trim())
                 .categoriaSugerida(categoriaNormalizada)
-                .nivelConfianca(nivelConfianca)
                 .justificativa(textoObrigatorio(classificacao, "justificativa"))
                 .respostaBruta(conteudo)
                 .tokensEntrada(Math.max(0, tokensEntrada))
@@ -246,14 +220,12 @@ public abstract class AbstractLLMProvider implements LLMProvider {
         String justificativa = "Resposta simulada do provedor " + codigo
                 + " para validar o fluxo de classificacao.";
         String respostaBruta = "categoria=" + categoriaSugerida
-                + "; nivelConfianca=" + nivelConfiancaSimulado
                 + "; justificativa=" + justificativa;
 
         return RespostaLLM.builder()
                 .codigoProvedor(codigo)
                 .identificadorModelo(solicitacao.getIdentificadorModelo().trim())
                 .categoriaSugerida(categoriaSugerida)
-                .nivelConfianca(nivelConfiancaSimulado)
                 .justificativa(justificativa)
                 .respostaBruta(respostaBruta)
                 .tokensEntrada(estimarTokens(solicitacao.getPromptFinal()))
@@ -318,16 +290,6 @@ public abstract class AbstractLLMProvider implements LLMProvider {
             );
         }
         return valor.asText().trim();
-    }
-
-    private BigDecimal decimalObrigatorio(JsonNode node, String campo) {
-        JsonNode valor = node.get(campo);
-        if (valor == null || !valor.isNumber()) {
-            throw new IntegracaoException(
-                    "O provedor " + codigo + " nao retornou o campo " + campo
-            );
-        }
-        return valor.decimalValue();
     }
 
     private int estimarTokens(String texto) {

@@ -756,23 +756,13 @@ Se `LLM_MODE` não estiver configurada, o valor padrão será `simulado`. Se `LL
 
 ## 21. Entender os campos técnicos da classificação
 
-### 21.1 nivelConfianca
-
-No modo real, `nivelConfianca` é uma autoavaliação produzida pela própria IA, entre `0` e `1`. Por exemplo, `0.85` significa que o modelo declarou aproximadamente 85% de confiança na própria resposta.
-
-Esse valor não é uma probabilidade cientificamente calibrada e não garante que a categoria esteja correta. Modelos diferentes podem repetir valores como `0.85`. A precisão real deve ser medida utilizando chamados com categoria esperada conhecida e comparando a resposta atribuída com essa categoria.
-
-No modo simulado, a confiança é um valor fixo usado somente para testar o fluxo. Portanto, não representa qualidade real.
-
-`percentualConcordancia` possui outro significado: ele é calculado pelo LinkNix e informa quantos modelos escolheram a mesma categoria. Por exemplo, dois votos iguais entre três modelos produzem `66.67%` de concordância.
-
-### 21.2 tempoRespostaMs
+### 21.1 tempoRespostaMs
 
 No modo real, `tempoRespostaMs` mede o tempo transcorrido entre o envio da requisição HTTP ao provider e o recebimento da resposta. O valor é real para aquela chamada, mas pode variar conforme internet, disponibilidade do provider e carga do serviço.
 
 No modo simulado, o tempo é fixo e existe somente para representar o formato da resposta.
 
-### 21.3 tokensEntrada e tokensSaida
+### 21.2 tokensEntrada e tokensSaida
 
 No modo real, os valores são lidos do campo de uso retornado por OpenAI, Anthropic ou DeepSeek:
 
@@ -781,7 +771,7 @@ No modo real, os valores são lidos do campo de uso retornado por OpenAI, Anthro
 
 No modo simulado, os tokens são apenas uma aproximação baseada na quantidade de caracteres.
 
-### 21.4 custoEstimado
+### 21.3 custoEstimado
 
 O LinkNix calcula o custo estimado usando os tokens retornados e os preços cadastrados em `modelos_ia`:
 
@@ -793,7 +783,7 @@ custo estimado =
 
 Esse valor é uma estimativa, não substitui a fatura oficial do provider. Alterações de preço, tokens em cache, promoções ou regras específicas do provider podem causar diferença entre o valor armazenado e o valor cobrado.
 
-### 21.5 metricaClassificacaoId
+### 21.4 metricaClassificacaoId
 
 `metricaClassificacaoId` pertence à avaliação acadêmica do classificador. Ele é preenchido quando existe uma categoria esperada conhecida e o LinkNix consegue comparar:
 
@@ -805,7 +795,7 @@ resultado da métrica: acertou = true
 
 Em chamados normais, a categoria esperada não é informada; por isso `metricaClassificacaoId` e `acertou` normalmente aparecem como `null`.
 
-### 21.6 execucaoTesteId
+### 21.5 execucaoTesteId
 
 `execucaoTesteId` serve para agrupar classificações pertencentes a uma execução experimental, por exemplo um teste com cem chamados conhecidos para comparar os modelos.
 

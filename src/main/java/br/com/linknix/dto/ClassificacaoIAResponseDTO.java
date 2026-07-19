@@ -17,7 +17,6 @@ public class ClassificacaoIAResponseDTO {
     private Long categoriaAtribuidaId;
     private String categoriaAtribuidaNome;
     private Long execucaoTesteId;
-    private BigDecimal nivelConfianca;
     private String justificativa;
     private String promptFinal;
     private String respostaBruta;

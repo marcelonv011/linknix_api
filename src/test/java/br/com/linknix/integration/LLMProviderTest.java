@@ -106,7 +106,7 @@ class LLMProviderTest {
                   "output": [{
                     "content": [{
                       "type": "output_text",
-                      "text": "{\\\"categoria\\\":\\\"DEV\\\",\\\"nivelConfianca\\\":0.97,\\\"justificativa\\\":\\\"Erro de software\\\"}"
+                      "text": "{\\\"categoria\\\":\\\"DEV\\\",\\\"justificativa\\\":\\\"Erro de software\\\"}"
                     }]
                   }],
                   "usage": {"input_tokens": 40, "output_tokens": 15}
@@ -137,7 +137,7 @@ class LLMProviderTest {
                 {
                   "content": [{
                     "type": "text",
-                    "text": "{\\\"categoria\\\":\\\"SUPORTE\\\",\\\"nivelConfianca\\\":0.91,\\\"justificativa\\\":\\\"Problema de acesso\\\"}"
+                    "text": "{\\\"categoria\\\":\\\"SUPORTE\\\",\\\"justificativa\\\":\\\"Problema de acesso\\\"}"
                   }],
                   "usage": {"input_tokens": 38, "output_tokens": 14}
                 }
@@ -167,7 +167,7 @@ class LLMProviderTest {
                 {
                   "choices": [{
                     "message": {
-                      "content": "{\\\"categoria\\\":\\\"DEV\\\",\\\"nivelConfianca\\\":0.88,\\\"justificativa\\\":\\\"Falha na aplicacao\\\"}"
+                      "content": "{\\\"categoria\\\":\\\"DEV\\\",\\\"justificativa\\\":\\\"Falha na aplicacao\\\"}"
                     }
                   }],
                   "usage": {"prompt_tokens": 35, "completion_tokens": 13}

@@ -8,14 +8,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
 import java.util.Map;
 
 @Component
 public class OpenAIProvider extends AbstractLLMProvider {
 
     public OpenAIProvider() {
-        super("OPENAI", new BigDecimal("0.94"), 120L);
+        super("OPENAI", 120L);
     }
 
     @Autowired
@@ -28,7 +27,6 @@ public class OpenAIProvider extends AbstractLLMProvider {
     ) {
         super(
                 "OPENAI",
-                new BigDecimal("0.94"),
                 120L,
                 objectMapper,
                 modo,
