@@ -2,6 +2,7 @@ package br.com.linknix.controller;
 
 import br.com.linknix.dto.ClienteHelpDeskRequestDTO;
 import br.com.linknix.dto.ClienteHelpDeskResponseDTO;
+import br.com.linknix.dto.ClienteHelpDeskStatusRequestDTO;
 import br.com.linknix.service.ClienteHelpDeskService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,5 +31,13 @@ public class ClienteHelpDeskController {
     @GetMapping("/{id}")
     public ResponseEntity<ClienteHelpDeskResponseDTO> buscar(@PathVariable Long id) {
         return ResponseEntity.ok(service.buscarPorId(id));
+    }
+
+    @PatchMapping("/{id}/ativo")
+    public ResponseEntity<ClienteHelpDeskResponseDTO> atualizarAtivo(
+            @PathVariable Long id,
+            @Valid @RequestBody ClienteHelpDeskStatusRequestDTO request
+    ) {
+        return ResponseEntity.ok(service.atualizarAtivo(id, request.getAtivo()));
     }
 }

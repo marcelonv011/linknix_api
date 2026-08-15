@@ -800,3 +800,35 @@ Em chamados normais, a categoria esperada não é informada; por isso `metricaCl
 `execucaoTesteId` serve para agrupar classificações pertencentes a uma execução experimental, por exemplo um teste com cem chamados conhecidos para comparar os modelos.
 
 Um chamado comum recebido de um Help Desk não pertence a uma execução de teste. Por isso `execucaoTesteId` normalmente aparece como `null`.
+
+## 22. Integração com o Dashboard e validação humana
+
+O Dashboard autentica um administrador em `POST /api/auth/login`, mantém o JWT na sessão PHP e consulta os dados de negócio sempre pela API. O SQLite do Dashboard não duplica clientes, chamados ou resultados do PostgreSQL.
+
+Depois que um analista escolher a categoria correta, o Dashboard envia:
+
+```http
+PATCH /api/chamados/{id}/validacao-humana
+Authorization: Bearer <jwt>
+Content-Type: application/json
+
+{
+  "categoriaId": 1
+}
+```
+
+O LinkNix grava essa categoria como referência humana, compara todas as classificações válidas daquele chamado e cria ou atualiza uma `MetricaClassificacao` para cada modelo. Os indicadores agregados ficam disponíveis em:
+
+```text
+GET /api/metricas/desempenho-modelos
+```
+
+A taxa retornada é uma taxa histórica de acerto baseada em avaliações humanas. O percentual de `ResultadoComparativo` continua significando concordância entre modelos; ele não representa confiança matemática da previsão.
+
+Para abastecer as telas do Dashboard também existem listagens gerais autenticadas:
+
+```text
+GET /api/classificacoes
+GET /api/resultados
+GET /api/metricas
+```

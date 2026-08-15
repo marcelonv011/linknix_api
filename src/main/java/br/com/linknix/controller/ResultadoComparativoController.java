@@ -9,12 +9,19 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/resultados")
 @RequiredArgsConstructor
 public class ResultadoComparativoController {
 
     private final ResultadoComparativoService resultadoService;
+
+    @GetMapping
+    public ResponseEntity<List<ResultadoComparativoResponseDTO>> listar() {
+        return ResponseEntity.ok(resultadoService.listarTodos());
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<ResultadoComparativoResponseDTO> buscar(

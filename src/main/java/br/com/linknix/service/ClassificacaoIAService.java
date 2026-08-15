@@ -53,6 +53,18 @@ public class ClassificacaoIAService {
     }
 
     @Transactional(readOnly = true)
+    public List<ClassificacaoIAResponseDTO> listarTodas() {
+        return classificacaoIARepository.findAll().stream()
+                .map(classificacao -> converterParaResponse(
+                        classificacao,
+                        metricaClassificacaoRepository
+                                .findByClassificacaoIAId(classificacao.getId())
+                                .orElse(null)
+                ))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<ClassificacaoIAResponseDTO> listarPorChamado(Long chamadoId) {
         return classificacaoIARepository
                 .findAllByChamadoIdOrderByCriadoEmAsc(chamadoId)

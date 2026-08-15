@@ -58,6 +58,13 @@ public class ClienteHelpDeskService {
         return converterParaResponse(buscarEntidadePorId(id));
     }
 
+    @Transactional
+    public ClienteHelpDeskResponseDTO atualizarAtivo(Long id, Boolean ativo) {
+        ClienteHelpDesk cliente = buscarEntidadePorId(id);
+        cliente.setAtivo(ativo);
+        return converterParaResponse(clienteHelpDeskRepository.save(cliente));
+    }
+
     @Transactional(readOnly = true)
     public ClienteHelpDesk buscarAtivoPorApiKey(String apiKey) {
         if (apiKey == null || apiKey.isBlank()) {

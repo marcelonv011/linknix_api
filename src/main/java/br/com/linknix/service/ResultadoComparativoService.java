@@ -67,6 +67,13 @@ public class ResultadoComparativoService {
     }
 
     @Transactional(readOnly = true)
+    public List<ResultadoComparativoResponseDTO> listarTodos() {
+        return resultadoComparativoRepository.findAll().stream()
+                .map(this::converterParaResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public ResultadoComparativoResponseDTO buscarPorId(Long id) {
         ResultadoComparativo resultado = resultadoComparativoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(

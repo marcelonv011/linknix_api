@@ -13,7 +13,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -60,5 +62,24 @@ class ClienteHelpDeskServiceTest {
                 RecursoNaoEncontradoException.class,
                 () -> clienteHelpDeskService.buscarAtivoPorApiKey("chave-invalida")
         );
+    }
+
+    @Test
+    void deveDesativarClienteSemExcluirSeuCadastro() {
+        ClienteHelpDesk cliente = ClienteHelpDesk.builder()
+                .id(10L)
+                .nome("JEDi Educação")
+                .sistemaOrigem("JEDI_EDUCA")
+                .ativo(true)
+                .build();
+        when(clienteHelpDeskRepository.findById(10L))
+                .thenReturn(Optional.of(cliente));
+        when(clienteHelpDeskRepository.save(cliente))
+                .thenReturn(cliente);
+
+        var resposta = clienteHelpDeskService.atualizarAtivo(10L, false);
+
+        assertFalse(resposta.getAtivo());
+        verify(clienteHelpDeskRepository).save(cliente);
     }
 }

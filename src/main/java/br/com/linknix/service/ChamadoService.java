@@ -81,6 +81,14 @@ public class ChamadoService {
         return chamadoRepository.save(chamado);
     }
 
+    Chamado definirCategoriaEsperada(
+            Chamado chamado,
+            CategoriaClassificacao categoria
+    ) {
+        chamado.setCategoriaEsperada(categoria);
+        return chamadoRepository.save(chamado);
+    }
+
     ChamadoResponseDTO converterParaResponse(Chamado chamado) {
         ClienteHelpDesk clienteHelpDesk = chamado.getClienteHelpDesk();
         CategoriaClassificacao categoriaEsperada = chamado.getCategoriaEsperada();

@@ -18,6 +18,11 @@ public class ClassificacaoIAController {
 
     private final ClassificacaoIAService classificacaoIAService;
 
+    @GetMapping
+    public ResponseEntity<List<ClassificacaoIAResponseDTO>> listar() {
+        return ResponseEntity.ok(classificacaoIAService.listarTodas());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ClassificacaoIAResponseDTO> buscar(@PathVariable Long id) {
         return ResponseEntity.ok(classificacaoIAService.buscarPorId(id));
