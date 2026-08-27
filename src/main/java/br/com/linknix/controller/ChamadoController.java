@@ -3,6 +3,7 @@ package br.com.linknix.controller;
 import br.com.linknix.dto.ChamadoRequestDTO;
 import br.com.linknix.dto.ChamadoResponseDTO;
 import br.com.linknix.dto.ProcessamentoChamadoResponseDTO;
+import br.com.linknix.dto.ProcessarChamadoRequestDTO;
 import br.com.linknix.dto.ValidacaoHumanaRequestDTO;
 import br.com.linknix.dto.ValidacaoHumanaResponseDTO;
 import br.com.linknix.service.ChamadoService;
@@ -36,13 +37,28 @@ public class ChamadoController {
 
     @PostMapping
     @SecurityRequirements
-    @Operation(summary = "Recebe e classifica um chamado externo")
-    public ResponseEntity<ProcessamentoChamadoResponseDTO> receber(
+    @Operation(summary = "Recebe um chamado externo e o deixa aguardando processamento")
+    public ResponseEntity<ChamadoResponseDTO> receber(
             @RequestHeader("X-API-Key") String apiKey,
             @Valid @RequestBody ChamadoRequestDTO request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(processamentoService.receberEClassificar(apiKey, request));
+                .body(chamadoService.receber(apiKey, request));
+    }
+
+    @PostMapping("/{id}/processar")
+    @SecurityRequirements
+    @Operation(summary = "Classifica um chamado previamente recebido")
+    public ResponseEntity<ProcessamentoChamadoResponseDTO> processar(
+            @RequestHeader("X-API-Key") String apiKey,
+            @PathVariable Long id,
+            @Valid @RequestBody ProcessarChamadoRequestDTO request
+    ) {
+        return ResponseEntity.ok(processamentoService.classificarRecebido(
+                apiKey,
+                id,
+                request.getProvedoresIA()
+        ));
     }
 
     @GetMapping

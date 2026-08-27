@@ -6,7 +6,6 @@ import br.com.linknix.entity.CategoriaClassificacao;
 import br.com.linknix.entity.Chamado;
 import br.com.linknix.entity.ClienteHelpDesk;
 import br.com.linknix.enums.StatusChamado;
-import br.com.linknix.exception.ConflitoException;
 import br.com.linknix.exception.RecursoNaoEncontradoException;
 import br.com.linknix.repository.ChamadoRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,10 +22,7 @@ public class ChamadoService {
     private final ClienteHelpDeskService clienteHelpDeskService;
 
     @Transactional
-    public ChamadoResponseDTO receber(
-            String apiKey,
-            ChamadoRequestDTO chamadoRequest
-    ) {
+    public ChamadoResponseDTO receber(String apiKey, ChamadoRequestDTO chamadoRequest) {
         return converterParaResponse(receberEntidade(apiKey, chamadoRequest));
     }
 
@@ -34,15 +30,20 @@ public class ChamadoService {
         ClienteHelpDesk clienteHelpDesk = clienteHelpDeskService.buscarAtivoPorApiKey(apiKey);
         String codigoExterno = chamadoRequest.getCodigoExterno().trim();
 
-        if (chamadoRepository.existsByClienteHelpDeskIdAndCodigoExterno(
+        Chamado existente = chamadoRepository.findByClienteHelpDeskIdAndCodigoExterno(
                 clienteHelpDesk.getId(),
                 codigoExterno
-        )) {
-            throw new ConflitoException(
-                    "Já existe um chamado com o código externo "
-                            + codigoExterno
-                            + " para este cliente Help Desk"
-            );
+        ).orElse(null);
+
+        if (existente != null) {
+            if (existente.getStatus() == StatusChamado.ERRO) {
+                existente.setTitulo(chamadoRequest.getTitulo().trim());
+                existente.setDescricao(chamadoRequest.getDescricao().trim());
+                existente.setStatus(StatusChamado.RECEBIDO);
+                return chamadoRepository.save(existente);
+            }
+
+            return existente;
         }
 
         Chamado chamado = Chamado.builder()
@@ -72,7 +73,15 @@ public class ChamadoService {
     Chamado buscarEntidadePorId(Long id) {
         return chamadoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
-                        "Chamado não encontrado com o ID " + id
+                        "Chamado nao encontrado com o ID " + id
+                ));
+    }
+
+    Chamado buscarEntidadeDoCliente(String apiKey, Long id) {
+        ClienteHelpDesk cliente = clienteHelpDeskService.buscarAtivoPorApiKey(apiKey);
+        return chamadoRepository.findByIdAndClienteHelpDeskId(id, cliente.getId())
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Chamado nao encontrado para este cliente Help Desk"
                 ));
     }
 
@@ -81,10 +90,7 @@ public class ChamadoService {
         return chamadoRepository.save(chamado);
     }
 
-    Chamado definirCategoriaEsperada(
-            Chamado chamado,
-            CategoriaClassificacao categoria
-    ) {
+    Chamado definirCategoriaEsperada(Chamado chamado, CategoriaClassificacao categoria) {
         chamado.setCategoriaEsperada(categoria);
         return chamadoRepository.save(chamado);
     }
@@ -102,12 +108,8 @@ public class ChamadoService {
                 .status(chamado.getStatus())
                 .clienteHelpDeskId(clienteHelpDesk.getId())
                 .clienteHelpDeskNome(clienteHelpDesk.getNome())
-                .categoriaEsperadaId(
-                        categoriaEsperada == null ? null : categoriaEsperada.getId()
-                )
-                .categoriaEsperadaNome(
-                        categoriaEsperada == null ? null : categoriaEsperada.getNome()
-                )
+                .categoriaEsperadaId(categoriaEsperada == null ? null : categoriaEsperada.getId())
+                .categoriaEsperadaNome(categoriaEsperada == null ? null : categoriaEsperada.getNome())
                 .criadoEm(chamado.getCriadoEm())
                 .atualizadoEm(chamado.getAtualizadoEm())
                 .build();

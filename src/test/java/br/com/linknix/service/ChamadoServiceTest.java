@@ -5,7 +5,6 @@ import br.com.linknix.dto.ChamadoResponseDTO;
 import br.com.linknix.entity.Chamado;
 import br.com.linknix.entity.ClienteHelpDesk;
 import br.com.linknix.enums.StatusChamado;
-import br.com.linknix.exception.ConflitoException;
 import br.com.linknix.repository.ChamadoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,9 +13,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -57,10 +57,10 @@ class ChamadoServiceTest {
     void deveObterSistemaDeOrigemAutomaticamenteDoCliente() {
         when(clienteHelpDeskService.buscarAtivoPorApiKey("chave-do-cliente"))
                 .thenReturn(clienteHelpDesk);
-        when(chamadoRepository.existsByClienteHelpDeskIdAndCodigoExterno(
+        when(chamadoRepository.findByClienteHelpDeskIdAndCodigoExterno(
                 10L,
                 "TICKET-123"
-        )).thenReturn(false);
+        )).thenReturn(Optional.empty());
         when(chamadoRepository.save(any(Chamado.class)))
                 .thenAnswer(invocacao -> {
                     Chamado chamado = invocacao.getArgument(0);
@@ -82,19 +82,30 @@ class ChamadoServiceTest {
     }
 
     @Test
-    void deveRejeitarCodigoExternoDuplicadoParaMesmoCliente() {
+    void deveRetornarChamadoExistenteParaRegistroRepetido() {
         when(clienteHelpDeskService.buscarAtivoPorApiKey("chave-do-cliente"))
                 .thenReturn(clienteHelpDesk);
-        when(chamadoRepository.existsByClienteHelpDeskIdAndCodigoExterno(
+        Chamado existente = Chamado.builder()
+                .id(7L)
+                .codigoExterno("TICKET-123")
+                .titulo("Falha no acesso")
+                .descricao("Usuario nao consegue entrar")
+                .sistemaOrigem("JEDi Educa")
+                .status(StatusChamado.RECEBIDO)
+                .clienteHelpDesk(clienteHelpDesk)
+                .build();
+        when(chamadoRepository.findByClienteHelpDeskIdAndCodigoExterno(
                 10L,
                 "TICKET-123"
-        )).thenReturn(true);
+        )).thenReturn(Optional.of(existente));
 
-        assertThrows(
-                ConflitoException.class,
-                () -> chamadoService.receber("chave-do-cliente", chamadoRequest)
+        ChamadoResponseDTO resposta = chamadoService.receber(
+                "chave-do-cliente",
+                chamadoRequest
         );
 
+        assertEquals(7L, resposta.getId());
+        assertEquals(StatusChamado.RECEBIDO, resposta.getStatus());
         verify(chamadoRepository, never()).save(any(Chamado.class));
     }
 }

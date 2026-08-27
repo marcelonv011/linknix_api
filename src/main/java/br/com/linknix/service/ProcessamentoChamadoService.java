@@ -59,6 +59,34 @@ public class ProcessamentoChamadoService {
         }
     }
 
+    @Transactional(noRollbackFor = {
+            IntegracaoException.class,
+            RegraNegocioException.class
+    })
+    public ProcessamentoChamadoResponseDTO classificarRecebido(
+            String apiKey,
+            Long chamadoId,
+            List<String> provedoresIA
+    ) {
+        Chamado chamado = chamadoService.buscarEntidadeDoCliente(apiKey, chamadoId);
+        if (chamado.getStatus() != StatusChamado.RECEBIDO) {
+            throw new RegraNegocioException(
+                    "Somente chamados aguardando processamento podem ser classificados"
+            );
+        }
+
+        List<ModeloIA> modelos = modeloIAService
+                .listarEntidadesAtivasSelecionadas(provedoresIA);
+        chamadoService.atualizarStatus(chamado, StatusChamado.EM_PROCESSAMENTO);
+
+        try {
+            return classificar(chamado, modelos);
+        } catch (IntegracaoException | RegraNegocioException exception) {
+            chamadoService.atualizarStatus(chamado, StatusChamado.ERRO);
+            throw exception;
+        }
+    }
+
     private ProcessamentoChamadoResponseDTO classificar(
             Chamado chamado,
             List<ModeloIA> modelos
