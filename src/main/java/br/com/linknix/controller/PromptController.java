@@ -36,4 +36,10 @@ public class PromptController {
     public ResponseEntity<PromptResponseDTO> ativar(@PathVariable Long id) {
         return ResponseEntity.ok(service.ativar(id));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> excluir(@PathVariable Long id) {
+        service.arquivar(id);
+        return ResponseEntity.noContent().build();
+    }
 }

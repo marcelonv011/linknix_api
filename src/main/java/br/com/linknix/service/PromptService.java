@@ -30,6 +30,7 @@ public class PromptService {
                 .conteudo(request.getConteudo())
                 .versao(proximaVersao)
                 .ativo(false)
+                .arquivado(false)
                 .autor(request.getAutor().trim())
                 .build();
         Prompt salvo = promptRepository.save(prompt);
@@ -41,7 +42,7 @@ public class PromptService {
 
     @Transactional(readOnly = true)
     public List<PromptResponseDTO> listarTodos() {
-        return promptRepository.findAll().stream()
+        return promptRepository.findAllByArquivadoFalse().stream()
                 .map(this::converterParaResponse)
                 .toList();
     }
@@ -49,7 +50,7 @@ public class PromptService {
     @Transactional
     public PromptResponseDTO ativar(Long id) {
         Prompt selecionado = buscarEntidadePorId(id);
-        List<Prompt> prompts = promptRepository.findAll();
+        List<Prompt> prompts = promptRepository.findAllByArquivadoFalse();
         prompts.forEach(prompt -> prompt.setAtivo(prompt.getId().equals(id)));
         promptRepository.saveAll(prompts);
         selecionado.setAtivo(true);
@@ -61,6 +62,16 @@ public class PromptService {
         return converterParaResponse(buscarEntidadePorId(id));
     }
 
+    @Transactional
+    public void arquivar(Long id) {
+        Prompt prompt = buscarEntidadePorId(id);
+        if (Boolean.TRUE.equals(prompt.getAtivo())) {
+            throw new RegraNegocioException("Ative outro prompt antes de excluir o prompt ativo");
+        }
+        prompt.setArquivado(true);
+        promptRepository.save(prompt);
+    }
+
     @Transactional(readOnly = true)
     public PromptResponseDTO buscarAtivo() {
         return converterParaResponse(buscarEntidadeAtiva());
@@ -68,6 +79,7 @@ public class PromptService {
 
     Prompt buscarEntidadePorId(Long id) {
         return promptRepository.findById(id)
+                .filter(prompt -> !Boolean.TRUE.equals(prompt.getArquivado()))
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
                         "Prompt não encontrado com o ID " + id
                 ));

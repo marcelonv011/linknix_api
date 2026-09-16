@@ -50,6 +50,9 @@ public class Prompt {
     )
     private Boolean ativo;
 
+    @Column(name = "arquivado", nullable = false)
+    private Boolean arquivado;
+
     @Column(
             name = "autor",
             nullable = false,
@@ -77,6 +80,10 @@ public class Prompt {
 
         if (ativo == null) {
             ativo = false;
+        }
+
+        if (arquivado == null) {
+            arquivado = false;
         }
 
         if (criadoEm == null) {
