@@ -192,6 +192,63 @@ class LLMProviderTest {
         assertTrue(execucao.corpo().contains("\"json_object\""));
     }
 
+    @Test
+    void deepSeekDeveConverterDesenvolvimentoParaCategoriaDev() throws IOException {
+        String respostaApi = """
+                {
+                  "choices": [{
+                    "message": {
+                      "content": "{\\"categoria\\":\\"DESENVOLVIMENTO\\",\\"justificativa\\":\\"Falha na aplicacao\\"}"
+                    }
+                  }],
+                  "usage": {"prompt_tokens": 35, "completion_tokens": 13}
+                }
+                """;
+
+        ExecucaoReal execucao = executarComServidorLocal(
+                "/chat/completions",
+                respostaApi,
+                baseUrl -> new DeepSeekProvider(
+                        new ObjectMapper(),
+                        "real",
+                        "chave-deepseek",
+                        baseUrl,
+                        5
+                )
+        );
+
+        assertEquals("DEV", execucao.resposta().getCategoriaSugerida());
+        assertTrue(execucao.resposta().getRespostaBruta().contains("DESENVOLVIMENTO"));
+    }
+
+    @Test
+    void claudeDeveConverterSuporteAoHelpDeskParaCategoriaSuporte() throws IOException {
+        String respostaApi = """
+                {
+                  "content": [{
+                    "type": "text",
+                    "text": "{\\"categoria\\":\\"SUPORTE AO HELP DESK\\",\\"justificativa\\":\\"Orientacao ao usuario\\"}"
+                  }],
+                  "usage": {"input_tokens": 38, "output_tokens": 14}
+                }
+                """;
+
+        ExecucaoReal execucao = executarComServidorLocal(
+                "/messages",
+                respostaApi,
+                baseUrl -> new ClaudeProvider(
+                        new ObjectMapper(),
+                        "real",
+                        "chave-claude",
+                        baseUrl,
+                        5
+                )
+        );
+
+        assertEquals("SUPORTE", execucao.resposta().getCategoriaSugerida());
+        assertTrue(execucao.resposta().getRespostaBruta().contains("SUPORTE AO HELP DESK"));
+    }
+
     private ExecucaoReal executarComServidorLocal(
             String caminho,
             String respostaApi,

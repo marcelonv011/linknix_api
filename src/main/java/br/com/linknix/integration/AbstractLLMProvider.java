@@ -12,6 +12,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.text.Normalizer;
 import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
@@ -273,13 +274,39 @@ public abstract class AbstractLLMProvider implements LLMProvider {
             String categoriaRecebida,
             List<String> categoriasPermitidas
     ) {
-        return normalizarCategorias(categoriasPermitidas).stream()
+        List<String> categoriasNormalizadas = normalizarCategorias(categoriasPermitidas);
+        String categoriaSemanticaRecebida = normalizarCategoriaSemantica(categoriaRecebida);
+
+        return categoriasNormalizadas.stream()
                 .filter(categoria -> categoria.equalsIgnoreCase(categoriaRecebida.trim()))
                 .findFirst()
+                .or(() -> categoriasNormalizadas.stream()
+                        .filter(categoria -> normalizarCategoriaSemantica(categoria)
+                                .equals(categoriaSemanticaRecebida))
+                        .findFirst())
                 .orElseThrow(() -> new IntegracaoException(
                         "O provedor " + codigo + " retornou uma categoria nao permitida: "
                                 + categoriaRecebida
                 ));
+    }
+
+    private String normalizarCategoriaSemantica(String categoria) {
+        String normalizada = Normalizer.normalize(
+                        categoria == null ? "" : categoria,
+                        Normalizer.Form.NFD
+                )
+                .replaceAll("\\p{M}", "")
+                .toUpperCase(Locale.ROOT)
+                .replaceAll("[^A-Z0-9]+", " ")
+                .trim()
+                .replaceAll("\\s+", " ");
+
+        return switch (normalizada) {
+            case "DESENVOLVIMENTO" -> "DEV";
+            case "SUPORTE AO HELP DESK", "SUPORTE HELP DESK" -> "SUPORTE";
+            case "INCONCLUSO" -> "INCONCLUSIVO";
+            default -> normalizada;
+        };
     }
 
     private String textoObrigatorio(JsonNode node, String campo) {
