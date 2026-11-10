@@ -1,14 +1,17 @@
 package br.com.linknix.service;
 
 import br.com.linknix.dto.ChamadoRequestDTO;
+import br.com.linknix.dto.ExecutarTesteRequestDTO;
 import br.com.linknix.dto.ProcessamentoChamadoResponseDTO;
 import br.com.linknix.entity.CategoriaClassificacao;
 import br.com.linknix.entity.Chamado;
 import br.com.linknix.entity.ClassificacaoIA;
+import br.com.linknix.entity.ExecucaoTeste;
 import br.com.linknix.entity.ModeloIA;
 import br.com.linknix.entity.Prompt;
 import br.com.linknix.entity.ResultadoComparativo;
 import br.com.linknix.enums.StatusChamado;
+import br.com.linknix.enums.StatusExecucaoTeste;
 import br.com.linknix.exception.IntegracaoException;
 import br.com.linknix.exception.RegraNegocioException;
 import br.com.linknix.integration.LLMProvider;
@@ -35,6 +38,7 @@ public class ProcessamentoChamadoService {
     private final ClassificacaoIAService classificacaoIAService;
     private final MetricaClassificacaoService metricaService;
     private final ResultadoComparativoService resultadoService;
+    private final ExecucaoTesteService execucaoTesteService;
     private final PromptEngine promptEngine;
     private final LLMProviderRegistry providerRegistry;
 
@@ -52,7 +56,7 @@ public class ProcessamentoChamadoService {
         chamadoService.atualizarStatus(chamado, StatusChamado.EM_PROCESSAMENTO);
 
         try {
-            return classificar(chamado, modelos);
+            return classificar(chamado, modelos, null);
         } catch (IntegracaoException | RegraNegocioException exception) {
             chamadoService.atualizarStatus(chamado, StatusChamado.ERRO);
             throw exception;
@@ -80,16 +84,64 @@ public class ProcessamentoChamadoService {
         chamadoService.atualizarStatus(chamado, StatusChamado.EM_PROCESSAMENTO);
 
         try {
-            return classificar(chamado, modelos);
+            return classificar(chamado, modelos, null);
         } catch (IntegracaoException | RegraNegocioException exception) {
             chamadoService.atualizarStatus(chamado, StatusChamado.ERRO);
             throw exception;
         }
     }
 
+    @Transactional(noRollbackFor = {
+            IntegracaoException.class,
+            RegraNegocioException.class
+    })
+    public ProcessamentoChamadoResponseDTO executarTeste(
+            Long execucaoTesteId,
+            ExecutarTesteRequestDTO request
+    ) {
+        ExecucaoTeste execucao = execucaoTesteService
+                .buscarEntidadePorId(execucaoTesteId);
+        execucaoTesteService.atualizarStatus(
+                execucao,
+                StatusExecucaoTeste.EM_EXECUCAO
+        );
+
+        ChamadoRequestDTO chamadoRequest = ChamadoRequestDTO.builder()
+                .codigoExterno("PESQUISA-" + execucaoTesteId + "-" + System.nanoTime())
+                .titulo(request.getTitulo())
+                .descricao(request.getDescricao())
+                .provedoresIA(request.getProvedoresIA())
+                .build();
+        Chamado chamado = chamadoService.receberEntidadePesquisa(chamadoRequest);
+        chamadoService.atualizarStatus(chamado, StatusChamado.EM_PROCESSAMENTO);
+
+        try {
+            List<ModeloIA> modelos = modeloIAService
+                    .listarEntidadesAtivasSelecionadas(request.getProvedoresIA());
+            ProcessamentoChamadoResponseDTO resultado = classificar(
+                    chamado,
+                    modelos,
+                    execucao
+            );
+            execucaoTesteService.atualizarStatus(
+                    execucao,
+                    StatusExecucaoTeste.CONCLUIDA
+            );
+            return resultado;
+        } catch (IntegracaoException | RegraNegocioException exception) {
+            chamadoService.atualizarStatus(chamado, StatusChamado.ERRO);
+            execucaoTesteService.atualizarStatus(
+                    execucao,
+                    StatusExecucaoTeste.FALHA
+            );
+            throw exception;
+        }
+    }
+
     private ProcessamentoChamadoResponseDTO classificar(
             Chamado chamado,
-            List<ModeloIA> modelos
+            List<ModeloIA> modelos,
+            ExecucaoTeste execucaoTeste
     ) {
         Prompt prompt = promptService.buscarEntidadeAtiva();
         List<CategoriaClassificacao> categorias = categoriaService
@@ -126,7 +178,8 @@ public class ProcessamentoChamadoService {
                             prompt,
                             categoria,
                             promptFinal,
-                            resposta
+                            resposta,
+                            execucaoTeste
                     );
             metricaService.registrarSeAplicavel(classificacao);
             classificacoes.add(classificacao);
@@ -148,4 +201,5 @@ public class ProcessamentoChamadoService {
                 .resultado(resultadoService.converterParaResponse(resultado))
                 .build();
     }
+
 }

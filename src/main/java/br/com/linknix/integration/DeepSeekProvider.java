@@ -19,8 +19,11 @@ public class DeepSeekProvider extends AbstractLLMProvider {
             categoria e justificativa.
             """;
 
+    private final int maxOutputTokens;
+
     public DeepSeekProvider() {
         super("DEEPSEEK", 100L);
+        this.maxOutputTokens = 500;
     }
 
     @Autowired
@@ -29,7 +32,8 @@ public class DeepSeekProvider extends AbstractLLMProvider {
             @Value("${linknix.ia.modo:simulado}") String modo,
             @Value("${linknix.ia.deepseek.api-key:}") String apiKey,
             @Value("${linknix.ia.deepseek.base-url:https://api.deepseek.com}") String baseUrl,
-            @Value("${linknix.ia.timeout-segundos:60}") long timeoutSegundos
+            @Value("${linknix.ia.timeout-segundos:60}") long timeoutSegundos,
+            @Value("${linknix.ia.max-output-tokens:500}") int maxOutputTokens
     ) {
         super(
                 "DEEPSEEK",
@@ -40,13 +44,14 @@ public class DeepSeekProvider extends AbstractLLMProvider {
                 baseUrl,
                 timeoutSegundos
         );
+        this.maxOutputTokens = limitarTokensSaida(maxOutputTokens);
     }
 
     @Override
     protected RespostaLLM executarReal(SolicitacaoLLM solicitacao) {
         ObjectNode corpo = objectMapper().createObjectNode();
         corpo.put("model", solicitacao.getIdentificadorModelo());
-        corpo.put("max_tokens", 500);
+        corpo.put("max_tokens", maxOutputTokens);
         corpo.putArray("messages")
                 .addObject()
                 .put("role", "user")

@@ -33,13 +33,15 @@ public class ClassificacaoIAService {
             Prompt prompt,
             CategoriaClassificacao categoria,
             String promptFinal,
-            RespostaLLM resposta
+            RespostaLLM resposta,
+            ExecucaoTeste execucaoTeste
     ) {
         ClassificacaoIA classificacao = ClassificacaoIA.builder()
                 .chamado(chamado)
                 .modeloIA(modelo)
                 .prompt(prompt)
                 .categoriaAtribuida(categoria)
+                .execucaoTeste(execucaoTeste)
                 .justificativa(resposta.getJustificativa())
                 .promptFinal(promptFinal)
                 .respostaBruta(resposta.getRespostaBruta())

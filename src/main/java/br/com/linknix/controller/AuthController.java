@@ -39,4 +39,12 @@ public class AuthController {
     ) {
         return ResponseEntity.ok(authService.login(request));
     }
+
+    @PostMapping("/registro-pesquisador")
+    public ResponseEntity<UsuarioResponseDTO> registrarPesquisador(
+            @Valid @RequestBody BootstrapUsuarioRequestDTO request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(usuarioService.registrarPesquisador(request));
+    }
 }

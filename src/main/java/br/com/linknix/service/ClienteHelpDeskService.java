@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -84,6 +85,20 @@ public class ClienteHelpDeskService {
         return clienteHelpDeskRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
                         "Cliente Help Desk não encontrado com o ID " + id
+                ));
+    }
+
+    @Transactional
+    public ClienteHelpDesk buscarOuCriarClientePesquisa() {
+        return clienteHelpDeskRepository
+                .findFirstByNomeIgnoreCaseAndAtivoTrue("Pesquisa LinkNix")
+                .orElseGet(() -> clienteHelpDeskRepository.save(
+                        ClienteHelpDesk.builder()
+                                .nome("Pesquisa LinkNix")
+                                .sistemaOrigem("Ambiente de pesquisa")
+                                .apiKey(apiKeyService.gerarHash(UUID.randomUUID().toString()))
+                                .ativo(true)
+                                .build()
                 ));
     }
 

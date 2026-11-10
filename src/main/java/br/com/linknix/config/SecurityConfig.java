@@ -47,6 +47,8 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/chamados", "/api/chamados/**").permitAll()
+                        .requestMatchers("/api/pesquisa/**")
+                        .hasAnyRole("ADMINISTRADOR", "PESQUISADOR")
                         .requestMatchers("/api/admin/**")
                         .hasRole("ADMINISTRADOR")
                         .anyRequest().authenticated())

@@ -121,7 +121,8 @@ class LLMProviderTest {
                         "real",
                         "chave-openai",
                         baseUrl,
-                        5
+                        5,
+                        900
                 )
         );
 
@@ -129,6 +130,7 @@ class LLMProviderTest {
         assertEquals(40, execucao.resposta().getTokensEntrada());
         assertEquals("Bearer chave-openai", execucao.authorization());
         assertTrue(execucao.corpo().contains("\"json_schema\""));
+        assertTrue(execucao.corpo().contains("\"max_output_tokens\":500"));
     }
 
     @Test
@@ -151,7 +153,8 @@ class LLMProviderTest {
                         "real",
                         "chave-claude",
                         baseUrl,
-                        5
+                        5,
+                        500
                 )
         );
 
@@ -159,6 +162,7 @@ class LLMProviderTest {
         assertEquals(14, execucao.resposta().getTokensSaida());
         assertEquals("chave-claude", execucao.apiKeyClaude());
         assertTrue(execucao.corpo().contains("\"output_config\""));
+        assertTrue(execucao.corpo().contains("\"max_tokens\":500"));
     }
 
     @Test
@@ -182,7 +186,8 @@ class LLMProviderTest {
                         "real",
                         "chave-deepseek",
                         baseUrl,
-                        5
+                        5,
+                        500
                 )
         );
 
@@ -190,6 +195,7 @@ class LLMProviderTest {
         assertEquals(35, execucao.resposta().getTokensEntrada());
         assertEquals("Bearer chave-deepseek", execucao.authorization());
         assertTrue(execucao.corpo().contains("\"json_object\""));
+        assertTrue(execucao.corpo().contains("\"max_tokens\":500"));
     }
 
     @Test
@@ -213,7 +219,8 @@ class LLMProviderTest {
                         "real",
                         "chave-deepseek",
                         baseUrl,
-                        5
+                        5,
+                        500
                 )
         );
 
@@ -241,7 +248,8 @@ class LLMProviderTest {
                         "real",
                         "chave-claude",
                         baseUrl,
-                        5
+                        5,
+                        500
                 )
         );
 

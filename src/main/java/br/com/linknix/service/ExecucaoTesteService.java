@@ -47,6 +47,14 @@ public class ExecucaoTesteService {
                 ));
     }
 
+    ExecucaoTeste atualizarStatus(
+            ExecucaoTeste execucao,
+            StatusExecucaoTeste status
+    ) {
+        execucao.setStatus(status);
+        return execucaoTesteRepository.save(execucao);
+    }
+
     private ExecucaoTesteResponseDTO converterParaResponse(ExecucaoTeste execucao) {
         return ExecucaoTesteResponseDTO.builder()
                 .id(execucao.getId())

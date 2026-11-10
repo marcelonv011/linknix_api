@@ -1,6 +1,8 @@
 package br.com.linknix.service;
 
 import br.com.linknix.dto.ChamadoRequestDTO;
+import br.com.linknix.dto.ExecucaoTesteRequestDTO;
+import br.com.linknix.dto.ExecutarTesteRequestDTO;
 import br.com.linknix.dto.ProcessamentoChamadoResponseDTO;
 import br.com.linknix.entity.CategoriaClassificacao;
 import br.com.linknix.entity.ClienteHelpDesk;
@@ -9,6 +11,7 @@ import br.com.linknix.entity.ModeloIA;
 import br.com.linknix.entity.Prompt;
 import br.com.linknix.entity.ProvedorIA;
 import br.com.linknix.enums.StatusChamado;
+import br.com.linknix.enums.StatusExecucaoTeste;
 import br.com.linknix.repository.CategoriaClassificacaoRepository;
 import br.com.linknix.repository.ClienteHelpDeskRepository;
 import br.com.linknix.repository.CriterioComparacaoRepository;
@@ -36,6 +39,9 @@ class ProcessamentoChamadoServiceTest {
 
     @Autowired
     private ApiKeyService apiKeyService;
+
+    @Autowired
+    private ExecucaoTesteService execucaoTesteService;
 
     @Autowired
     private ClienteHelpDeskRepository clienteRepository;
@@ -123,6 +129,38 @@ class ProcessamentoChamadoServiceTest {
                 respostaSomenteOpenAI.getClassificacoes().getFirst().getProvedorCodigo()
         );
         assertEquals(1, respostaSomenteOpenAI.getResultado().getTotalModelos());
+
+        var execucao = execucaoTesteService.criar(
+                ExecucaoTesteRequestDTO.builder()
+                        .nome("Teste de pesquisador")
+                        .descricao("Execução real pelo perfil restrito")
+                        .build()
+        );
+        ProcessamentoChamadoResponseDTO respostaPesquisa = processamentoService
+                .executarTeste(execucao.getId(), ExecutarTesteRequestDTO.builder()
+                        .titulo("Botão de salvar não funciona")
+                        .descricao("O formulário não responde ao clique")
+                        .provedoresIA(List.of("OPENAI", "CLAUDE", "DEEPSEEK"))
+                        .build());
+
+        assertEquals(3, respostaPesquisa.getClassificacoes().size());
+        assertEquals(
+                execucao.getId(),
+                respostaPesquisa.getClassificacoes().getFirst().getExecucaoTesteId()
+        );
+        assertEquals(
+                StatusExecucaoTeste.CONCLUIDA,
+                execucaoTesteService.buscarPorId(execucao.getId()).getStatus()
+        );
+        assertEquals(
+                "Pesquisa LinkNix",
+                respostaPesquisa.getChamado().getClienteHelpDeskNome()
+        );
+        assertEquals(
+                true,
+                respostaPesquisa.getClassificacoes().stream()
+                        .allMatch(item -> item.getJustificativa().contains("simulada"))
+        );
     }
 
     private void criarModelo(

@@ -9,5 +9,7 @@ public interface ClienteHelpDeskRepository extends JpaRepository<ClienteHelpDesk
 
     Optional<ClienteHelpDesk> findByApiKeyAndAtivoTrue(String apiKey);
 
+    Optional<ClienteHelpDesk> findFirstByNomeIgnoreCaseAndAtivoTrue(String nome);
+
     boolean existsByApiKey(String apiKey);
 }
