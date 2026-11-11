@@ -13,8 +13,11 @@ import java.util.Map;
 @Component
 public class ClaudeProvider extends AbstractLLMProvider {
 
+    private final int maxOutputTokens;
+
     public ClaudeProvider() {
         super("CLAUDE", 140L);
+        this.maxOutputTokens = 500;
     }
 
     @Autowired
@@ -23,7 +26,8 @@ public class ClaudeProvider extends AbstractLLMProvider {
             @Value("${linknix.ia.modo:simulado}") String modo,
             @Value("${linknix.ia.claude.api-key:}") String apiKey,
             @Value("${linknix.ia.claude.base-url:https://api.anthropic.com/v1}") String baseUrl,
-            @Value("${linknix.ia.timeout-segundos:60}") long timeoutSegundos
+            @Value("${linknix.ia.timeout-segundos:60}") long timeoutSegundos,
+            @Value("${linknix.ia.max-output-tokens:500}") int maxOutputTokens
     ) {
         super(
                 "CLAUDE",
@@ -34,13 +38,14 @@ public class ClaudeProvider extends AbstractLLMProvider {
                 baseUrl,
                 timeoutSegundos
         );
+        this.maxOutputTokens = limitarTokensSaida(maxOutputTokens);
     }
 
     @Override
     protected RespostaLLM executarReal(SolicitacaoLLM solicitacao) {
         ObjectNode corpo = objectMapper().createObjectNode();
         corpo.put("model", solicitacao.getIdentificadorModelo());
-        corpo.put("max_tokens", 500);
+        corpo.put("max_tokens", maxOutputTokens);
         corpo.putArray("messages")
                 .addObject()
                 .put("role", "user")

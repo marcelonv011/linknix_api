@@ -28,6 +28,20 @@ public class ChamadoService {
 
     Chamado receberEntidade(String apiKey, ChamadoRequestDTO chamadoRequest) {
         ClienteHelpDesk clienteHelpDesk = clienteHelpDeskService.buscarAtivoPorApiKey(apiKey);
+        return receberEntidade(clienteHelpDesk, chamadoRequest);
+    }
+
+    Chamado receberEntidadePesquisa(ChamadoRequestDTO chamadoRequest) {
+        return receberEntidade(
+                clienteHelpDeskService.buscarOuCriarClientePesquisa(),
+                chamadoRequest
+        );
+    }
+
+    private Chamado receberEntidade(
+            ClienteHelpDesk clienteHelpDesk,
+            ChamadoRequestDTO chamadoRequest
+    ) {
         String codigoExterno = chamadoRequest.getCodigoExterno().trim();
 
         Chamado existente = chamadoRepository.findByClienteHelpDeskIdAndCodigoExterno(

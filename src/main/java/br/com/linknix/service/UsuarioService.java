@@ -42,6 +42,19 @@ public class UsuarioService {
     }
 
     @Transactional
+    public UsuarioResponseDTO registrarPesquisador(
+            BootstrapUsuarioRequestDTO request
+    ) {
+        Usuario usuario = construirUsuario(
+                request.getNome(),
+                request.getEmail(),
+                request.getSenha(),
+                PerfilUsuario.PESQUISADOR
+        );
+        return converterParaResponse(usuarioRepository.save(usuario));
+    }
+
+    @Transactional
     public UsuarioResponseDTO criar(UsuarioRequestDTO request) {
         Usuario usuario = construirUsuario(
                 request.getNome(),

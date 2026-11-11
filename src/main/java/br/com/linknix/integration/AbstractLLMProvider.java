@@ -21,6 +21,7 @@ import java.util.Map;
 public abstract class AbstractLLMProvider implements LLMProvider {
 
     private static final int CARACTERES_POR_TOKEN_SIMULADO = 4;
+    private static final int LIMITE_MAXIMO_TOKENS_SAIDA = 500;
 
     private final String codigo;
     private final long tempoRespostaMsSimulado;
@@ -206,6 +207,13 @@ public abstract class AbstractLLMProvider implements LLMProvider {
 
     protected String apiKey() {
         return apiKey;
+    }
+
+    protected int limitarTokensSaida(int valorConfigurado) {
+        return Math.min(
+                Math.max(valorConfigurado, 1),
+                LIMITE_MAXIMO_TOKENS_SAIDA
+        );
     }
 
     private RespostaLLM executarSimulado(SolicitacaoLLM solicitacao) {

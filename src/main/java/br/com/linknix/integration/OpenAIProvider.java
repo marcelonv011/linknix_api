@@ -13,8 +13,11 @@ import java.util.Map;
 @Component
 public class OpenAIProvider extends AbstractLLMProvider {
 
+    private final int maxOutputTokens;
+
     public OpenAIProvider() {
         super("OPENAI", 120L);
+        this.maxOutputTokens = 500;
     }
 
     @Autowired
@@ -23,7 +26,8 @@ public class OpenAIProvider extends AbstractLLMProvider {
             @Value("${linknix.ia.modo:simulado}") String modo,
             @Value("${linknix.ia.openai.api-key:}") String apiKey,
             @Value("${linknix.ia.openai.base-url:https://api.openai.com/v1}") String baseUrl,
-            @Value("${linknix.ia.timeout-segundos:60}") long timeoutSegundos
+            @Value("${linknix.ia.timeout-segundos:60}") long timeoutSegundos,
+            @Value("${linknix.ia.max-output-tokens:500}") int maxOutputTokens
     ) {
         super(
                 "OPENAI",
@@ -34,6 +38,7 @@ public class OpenAIProvider extends AbstractLLMProvider {
                 baseUrl,
                 timeoutSegundos
         );
+        this.maxOutputTokens = limitarTokensSaida(maxOutputTokens);
     }
 
     @Override
@@ -41,7 +46,7 @@ public class OpenAIProvider extends AbstractLLMProvider {
         ObjectNode corpo = objectMapper().createObjectNode();
         corpo.put("model", solicitacao.getIdentificadorModelo());
         corpo.put("input", solicitacao.getPromptFinal());
-        corpo.put("max_output_tokens", 1000);
+        corpo.put("max_output_tokens", maxOutputTokens);
 
         ObjectNode formato = corpo.putObject("text")
                 .putObject("format");
