@@ -63,6 +63,12 @@ public class ClienteHelpDesk {
     private Boolean ativo;
 
     @Column(
+            name = "arquivado",
+            nullable = false
+    )
+    private Boolean arquivado;
+
+    @Column(
             name = "criado_em",
             nullable = false,
             updatable = false
@@ -73,6 +79,10 @@ public class ClienteHelpDesk {
     public void prePersist() {
         if (ativo == null) {
             ativo = true;
+        }
+
+        if (arquivado == null) {
+            arquivado = false;
         }
 
         if (criadoEm == null) {

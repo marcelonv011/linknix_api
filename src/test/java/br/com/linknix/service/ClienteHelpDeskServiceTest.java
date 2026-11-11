@@ -14,6 +14,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -80,6 +81,24 @@ class ClienteHelpDeskServiceTest {
         var resposta = clienteHelpDeskService.atualizarAtivo(10L, false);
 
         assertFalse(resposta.getAtivo());
+        verify(clienteHelpDeskRepository).save(cliente);
+    }
+
+    @Test
+    void deveArquivarSistemaSemApagarSeuHistorico() {
+        ClienteHelpDesk cliente = ClienteHelpDesk.builder()
+                .id(10L)
+                .nome("Sistema antigo")
+                .ativo(false)
+                .arquivado(false)
+                .build();
+        when(clienteHelpDeskRepository.findById(10L))
+                .thenReturn(Optional.of(cliente));
+
+        clienteHelpDeskService.arquivar(10L);
+
+        assertFalse(cliente.getAtivo());
+        assertTrue(cliente.getArquivado());
         verify(clienteHelpDeskRepository).save(cliente);
     }
 }

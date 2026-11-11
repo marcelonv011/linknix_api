@@ -1,0 +1,3 @@
+ALTER TABLE clientes_helpdesk
+    ADD COLUMN arquivado BOOLEAN NOT NULL DEFAULT FALSE;
+

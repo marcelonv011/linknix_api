@@ -42,6 +42,7 @@ public class ClienteHelpDeskService {
                 .apiKey(apiKeyHash)
                 .criadoPor(criadoPor)
                 .ativo(request.getAtivo() == null || request.getAtivo())
+                .arquivado(false)
                 .build();
 
         return converterParaResponse(clienteHelpDeskRepository.save(cliente));
@@ -49,7 +50,7 @@ public class ClienteHelpDeskService {
 
     @Transactional(readOnly = true)
     public List<ClienteHelpDeskResponseDTO> listarTodos() {
-        return clienteHelpDeskRepository.findAll().stream()
+        return clienteHelpDeskRepository.findAllByArquivadoFalse().stream()
                 .map(this::converterParaResponse)
                 .toList();
     }
@@ -64,6 +65,14 @@ public class ClienteHelpDeskService {
         ClienteHelpDesk cliente = buscarEntidadePorId(id);
         cliente.setAtivo(ativo);
         return converterParaResponse(clienteHelpDeskRepository.save(cliente));
+    }
+
+    @Transactional
+    public void arquivar(Long id) {
+        ClienteHelpDesk cliente = buscarEntidadePorId(id);
+        cliente.setAtivo(false);
+        cliente.setArquivado(true);
+        clienteHelpDeskRepository.save(cliente);
     }
 
     @Transactional(readOnly = true)
@@ -83,8 +92,9 @@ public class ClienteHelpDeskService {
 
     ClienteHelpDesk buscarEntidadePorId(Long id) {
         return clienteHelpDeskRepository.findById(id)
+                .filter(cliente -> !Boolean.TRUE.equals(cliente.getArquivado()))
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
-                        "Cliente Help Desk não encontrado com o ID " + id
+                        "Sistema integrado não encontrado com o ID " + id
                 ));
     }
 
