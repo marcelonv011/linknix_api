@@ -63,7 +63,7 @@ public class ChamadoController {
     }
 
     @PostMapping("/admin/{id}/processar")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PESQUISADOR')")
     @Operation(summary = "Classifica um chamado pendente a partir da Dashboard")
     public ResponseEntity<ProcessamentoChamadoResponseDTO> processarPelaDashboard(
             @PathVariable Long id,
