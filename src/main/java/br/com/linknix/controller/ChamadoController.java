@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -61,6 +62,19 @@ public class ChamadoController {
         ));
     }
 
+    @PostMapping("/admin/{id}/processar")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @Operation(summary = "Classifica um chamado pendente a partir da Dashboard")
+    public ResponseEntity<ProcessamentoChamadoResponseDTO> processarPelaDashboard(
+            @PathVariable Long id,
+            @Valid @RequestBody ProcessarChamadoRequestDTO request
+    ) {
+        return ResponseEntity.ok(processamentoService.classificarComoAdministrador(
+                id,
+                request.getProvedoresIA()
+        ));
+    }
+
     @GetMapping
     public ResponseEntity<List<ChamadoResponseDTO>> listar() {
         return ResponseEntity.ok(chamadoService.listarTodos());
@@ -80,3 +94,4 @@ public class ChamadoController {
         return ResponseEntity.ok(validacaoHumanaService.validar(id, request));
     }
 }
+
