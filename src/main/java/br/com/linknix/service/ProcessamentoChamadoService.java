@@ -95,6 +95,33 @@ public class ProcessamentoChamadoService {
             IntegracaoException.class,
             RegraNegocioException.class
     })
+    public ProcessamentoChamadoResponseDTO classificarComoAdministrador(
+            Long chamadoId,
+            List<String> provedoresIA
+    ) {
+        Chamado chamado = chamadoService.buscarEntidadePorId(chamadoId);
+        if (chamado.getStatus() != StatusChamado.RECEBIDO) {
+            throw new RegraNegocioException(
+                    "Somente chamados aguardando processamento podem ser classificados"
+            );
+        }
+
+        List<ModeloIA> modelos = modeloIAService
+                .listarEntidadesAtivasSelecionadas(provedoresIA);
+        chamadoService.atualizarStatus(chamado, StatusChamado.EM_PROCESSAMENTO);
+
+        try {
+            return classificar(chamado, modelos, null);
+        } catch (IntegracaoException | RegraNegocioException exception) {
+            chamadoService.atualizarStatus(chamado, StatusChamado.ERRO);
+            throw exception;
+        }
+    }
+
+    @Transactional(noRollbackFor = {
+            IntegracaoException.class,
+            RegraNegocioException.class
+    })
     public ProcessamentoChamadoResponseDTO executarTeste(
             Long execucaoTesteId,
             ExecutarTesteRequestDTO request
@@ -203,3 +230,4 @@ public class ProcessamentoChamadoService {
     }
 
 }
+
